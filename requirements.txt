@@ -7,21 +7,45 @@ flask-wtf==1.2.2
 WTForms==3.0.1
 email-validator==2.0.0
 
-# Database Support (PostgreSQL for Vercel)
+# Database Support (PostgreSQL)
 psycopg2-binary==2.9.9
 flask-sqlalchemy==3.1.1
 flask-migrate==4.0.7
 
 # Web Scraping
+lxml==6.0.0
 requests==2.32.4
 beautifulsoup4==4.13.4
 
-# Lightweight ML
+# ML/AI Libraries - FULL VERSION
+torch==2.6.0
+transformers==4.44.2
 scikit-learn==1.5.2
+nltk==3.9.1
+
+# Data Processing
+pandas==2.2.3
+numpy==1.26.4
+
+# Visualization
+plotly==5.24.1
+matplotlib==3.9.2
 
 # Configuration
 python-dotenv==1.0.1
 joblib==1.4.2
 
+# ML dependencies
+tokenizers==0.20.0
+huggingface-hub==0.25.1
+safetensors==0.4.5
+
+# Real-time Features
+flask-socketio==5.3.6
+python-socketio==5.9.0
+
 # Production Ready
 gunicorn==21.2.0
+
+# OpenCV for AI Proctoring
+opencv-python-headless==4.10.0.84
