@@ -13,17 +13,11 @@ flask-sqlalchemy==3.1.1
 flask-migrate==4.0.7
 
 # Web Scraping
-lxml==6.0.0
 requests==2.32.4
 beautifulsoup4==4.13.4
 
-# ML/AI Libraries - Let transformers manage its own dependencies
-transformers==4.44.2
+# Lightweight ML
 scikit-learn==1.5.2
-
-# Data Processing
-pandas==2.2.3
-numpy==1.26.4
 
 # Configuration
 python-dotenv==1.0.1
