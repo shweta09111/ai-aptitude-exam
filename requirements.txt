@@ -1,81 +1,61 @@
-# Core Framework (existing - keep as is)
+# Core Flask Framework
 flask==3.1.2
 werkzeug==3.1.3
 flask-login==0.6.3
 flask-bcrypt==1.0.1
 flask-wtf==1.2.2
-lxml==6.0.0
-requests==2.32.4
-beautifulsoup4==4.13.4
 WTForms==3.0.1
 email-validator==2.0.0
 
-# Database (cross-platform)
+# Database Support (SQLite + PostgreSQL for Vercel)
+psycopg2-binary==2.9.9
 flask-sqlalchemy==3.1.1
 flask-migrate==4.0.7
-psycopg2-binary==2.9.9
 
-# ML/AI Libraries (Windows-compatible versions)
-torch==2.6.0
+# Web Scraping
+lxml==6.0.0
+requests==2.32.4
+beautifulsoup4==4.13.4
+
+# ML/AI Libraries (Lightweight for Vercel)
+torch==2.5.0
 transformers==4.44.2
-scikit-learn==1.7.2
+scikit-learn==1.5.2
 nltk==3.9.1
-spacy==3.8.2
 
-# Data Processing (Windows-compatible)
+# Data Processing
 pandas==2.2.3
-numpy==2.1.1
+numpy==1.26.4
 scipy==1.14.1
 
 # Visualization
 plotly==5.24.1
 matplotlib==3.9.2
 
-# Development Tools
+# Configuration
 python-dotenv==1.0.1
-pytest==8.3.3
 joblib==1.4.2
 
-# Additional ML dependencies
+# ML dependencies
 tokenizers==0.20.0
 huggingface-hub==0.25.1
 safetensors==0.4.5
 
-# NEW ADDITIONS FOR ENHANCEMENTS
 # Real-time Features
 flask-socketio==5.3.6
-eventlet==0.33.3
 python-socketio==5.9.0
 
-# Enhanced IRT and Statistics  
-py-irt==0.3.4
+# Statistics  
 statsmodels==0.14.0
-
-# Background Tasks and Caching
-redis==5.0.8
-APScheduler==3.10.4
-celery==5.3.4
 
 # Enhanced Analytics
 seaborn==0.13.0
-jupyter==1.0.0
-ipywidgets==8.1.1
 
 # Configuration and Logging
 pyyaml==6.0.1
-colorlog==6.7.0
-
-# API Documentation
-flask-restx==1.3.0
-marshmallow==3.20.1
-
-# Testing and Quality
-pytest-flask==1.3.0
-pytest-cov==4.1.0
-black==23.9.1
-flake8==6.1.0
 
 # Production Ready
 gunicorn==21.2.0
-supervisor==4.2.5
-```
+
+# OpenCV for AI Proctoring (lightweight version)
+opencv-python-headless==4.10.0.84
