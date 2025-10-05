@@ -16,7 +16,7 @@ flask-migrate==4.0.7
 psycopg2-binary==2.9.9
 
 # ML/AI Libraries (Windows-compatible versions)
-torch==2.6.0 / 2.8.0
+torch==2.6.0
 transformers==4.44.2
 scikit-learn==1.7.2
 nltk==3.9.1
@@ -78,7 +78,4 @@ flake8==6.1.0
 # Production Ready
 gunicorn==21.2.0
 supervisor==4.2.5
-
-# For CUDA support
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
