@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Scraper - AI Aptitude Exam{% endblock title %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-download text-success"></i> Admin Scraper Dashboard
+            </h1>
+            <div class="alert alert-info">
+                <i class="fas fa-shield-alt"></i> <strong>Anti-Duplicate Protection:</strong> 
+                System automatically prevents duplicate questions from being added to the database.
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Update Question Bank Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <i class="fas fa-sync-alt text-success" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">Update Question Bank</h5>
+                            <p class="card-text text-muted">Scrapes all categories & topics in one click.</p>
+                        </div>
+                    </div>
+                    
+                    <p class="card-text">Questions are inserted directly into the database with duplicate prevention.</p>
+                    
+                    <form id="scrapeForm">
+                        <button type="submit" id="scrapeBtn" class="btn btn-success w-100">
+                            <i class="fas fa-bolt"></i> Update All Questions
+                        </button>
+                    </form>
+                    
+                    <!-- Result container that will be managed dynamically -->
+                    <div id="scrapeResultContainer"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Upload Questions via CSV Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <i class="fas fa-upload text-primary" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">Upload Questions via CSV</h5>
+                            <p class="card-text text-muted">Bulk add questions from a CSV file.</p>
+                        </div>
+                    </div>
+                    
+                    <form id="csvForm" enctype="multipart/form-data" method="POST" action="/admin/upload_csv">
+                        <div class="mb-3">
+                            <input type="file" id="csvFile" name="file" accept=".csv" required class="form-control">
+                            <div class="form-text">Upload a CSV file with question data (duplicates will be automatically skipped)</div>
+                        </div>
+                        <button type="submit" id="csvBtn" class="btn btn-primary w-100">
+                            <i class="fas fa-upload"></i> Upload CSV
+                        </button>
+                    </form>
+                    
+                    <!-- CSV Result container that will be managed dynamically -->
+                    <div id="csvResultContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Database Statistics -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-bar"></i> Current Database Statistics
+                    </h5>
+                    
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h2 class="text-primary mb-0" id="totalQuestions">Loading...</h2>
+                                <p class="text-muted">Total Questions</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h2 class="text-success mb-0" id="uniqueQuestions">-</h2>
+                                <p class="text-muted">Unique Questions</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h2 class="text-warning mb-0" id="recentlyAdded">-</h2>
+                                <p class="text-muted">Added Today</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h2 class="text-info mb-0" id="lastUpdated">-</h2>
+                                <p class="text-muted">Last Updated</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button id="refreshStats" class="btn btn-outline-secondary">
+                            <i class="fas fa-sync"></i> Refresh Statistics
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let isProcessing = false;
+
+// Debug session info
+console.log('🎯 Session Status:', {
+    logged_in: document.body.dataset.loggedIn || 'unknown',
+    is_admin: document.body.dataset.isAdmin || 'unknown', 
+    username: document.body.dataset.username || 'unknown'
+});
+
+function updateQuestionCount() {
+    console.log('Fetching question count...');
+    
+    const totalEl = document.getElementById('totalQuestions');
+    const uniqueEl = document.getElementById('uniqueQuestions');  
+    const recentEl = document.getElementById('recentlyAdded');
+    const lastEl = document.getElementById('lastUpdated');
+
+    // Check if elements exist
+    if (!totalEl || !uniqueEl || !recentEl || !lastEl) {
+        console.error('❌ Missing stats elements:', {
+            total: !!totalEl,
+            unique: !!uniqueEl,
+            recent: !!recentEl,
+            last: !!lastEl
+        });
+        return;
+    }
+
+    fetch('/admin/question_stats')
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            return res.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                totalEl.textContent = data.total_questions;
+                uniqueEl.textContent = data.unique_questions;
+                recentEl.textContent = data.recent_count;
+                lastEl.textContent = new Date().toLocaleTimeString();
+                console.log(`✅ Updated stats: Total=${data.total_questions}, Unique=${data.unique_questions}`);
+            } else {
+                totalEl.textContent = 'Error';
+                console.error('❌ Stats error:', data.error);
+            }
+        })
+        .catch(error => {
+            totalEl.textContent = 'Error';
+            console.error('❌ Fetch error:', error);
+        });
+}
+
+// Function to ensure result elements exist (create if missing)
+function ensureScrapeResultElements() {
+    let container = document.getElementById('scrapeResultContainer');
+    if (!container) {
+        console.error('❌ Scrape result container not found');
+        return null;
+    }
+    
+    // Remove existing result if any
+    container.innerHTML = '';
+    
+    // Create fresh result elements
+    const resultHTML = `
+        <div id="scrapeResult" class="alert alert-success mt-3" style="display: none;">
+            <i class="fas fa-check-circle"></i> 
+            <span id="scrapeResultText">Successfully updated!</span><br>
+            <small>New: <span id="questionCount">0</span> | Skipped duplicates: <span id="duplicateCount">0</span></small>
+        </div>
+    `;
+    
+    container.innerHTML = resultHTML;
+    
+    return {
+        result: document.getElementById('scrapeResult'),
+        text: document.getElementById('scrapeResultText'),
+        count: document.getElementById('questionCount'),
+        dupes: document.getElementById('duplicateCount')
+    };
+}
+
+// Enhanced scraping with dynamic element creation
+document.getElementById('scrapeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (isProcessing) {
+        console.log('⏳ Already processing, ignoring click');
+        return;
+    }
+
+    console.log('🚀 Starting immediate scrape...');
+    isProcessing = true;
+    
+    // Get button (this should always exist)
+    const btn = document.getElementById('scrapeBtn');
+    if (!btn) {
+        console.error('❌ Scrape button not found');
+        isProcessing = false;
+        return;
+    }
+    
+    // Create fresh result elements
+    const elements = ensureScrapeResultElements();
+    if (!elements) {
+        console.error('❌ Could not create result elements');
+        isProcessing = false;
+        return;
+    }
+    
+    const { result, text, count, dupes } = elements;
+
+    // Update UI to show processing
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    result.style.display = 'none';
+    
+    // Start scraping (immediate response)
+    fetch('/admin/scrape', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' } 
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return res.json();
+    })
+    .then(data => {
+        console.log('📊 Scrape response:', data);
+        
+        if (data.success) {
+            // Show results immediately
+            text.textContent = data.message || 'Scraping completed';
+            count.textContent = data.questions_added || 0;
+            dupes.textContent = data.duplicates_skipped || 0;
+            result.style.display = 'block';
+            
+            // Update statistics
+            updateQuestionCount();
+            
+            // Show success notification
+            if (data.questions_added > 0) {
+                showNotification(`✅ Added ${data.questions_added} new questions! (Skipped ${data.duplicates_skipped} duplicates)`, 'success');
+            } else if (data.duplicates_skipped > 0) {
+                showNotification(`ℹ️ No new questions added - All ${data.duplicates_skipped} questions were duplicates`, 'info');
+            } else {
+                showNotification(`⚠️ No questions processed`, 'warning');
+            }
+        } else {
+            throw new Error(data.error || 'Scraping failed');
+        }
+    })
+    .catch(err => {
+        console.error('❌ Scraping error:', err);
+        
+        // Show error in UI
+        text.textContent = 'Error occurred: ' + err.message;
+        count.textContent = '0';
+        dupes.textContent = '0';
+        result.style.display = 'block';
+        
+        showNotification('❌ Scraping Error: ' + err.message, 'danger');
+    })
+    .finally(() => {
+        // Reset UI
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-bolt"></i> Update All Questions';
+        isProcessing = false;
+        console.log('🏁 Scraping process completed');
+    });
+});
+
+// Function to ensure CSV result elements exist (create if missing)
+function ensureCSVResultElements() {
+    let container = document.getElementById('csvResultContainer');
+    if (!container) {
+        console.error('❌ CSV result container not found');
+        return null;
+    }
+    
+    // Remove existing result if any
+    container.innerHTML = '';
+    
+    // Create fresh result elements
+    const resultHTML = `
+        <div id="csvResult" class="alert alert-success mt-3" style="display: none;">
+            <i class="fas fa-check-circle"></i> 
+            <span id="csvResultText">Successfully uploaded!</span><br>
+            <small>Added: <span id="csvQuestionCount">0</span> | Skipped duplicates: <span id="csvDuplicateCount">0</span></small>
+        </div>
+    `;
+    
+    container.innerHTML = resultHTML;
+    
+    return {
+        result: document.getElementById('csvResult'),
+        text: document.getElementById('csvResultText'),
+        count: document.getElementById('csvQuestionCount'),
+        dupes: document.getElementById('csvDuplicateCount')
+    };
+}
+
+// CSV upload handler
+document.getElementById('csvForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('csvFile');
+    if (!fileInput || !fileInput.files.length) {
+        showNotification('⚠️ Please select a CSV file', 'warning');
+        return;
+    }
+    
+    const btn = document.getElementById('csvBtn');
+    if (!btn) {
+        console.error('❌ CSV button not found');
+        return;
+    }
+    
+    // Create fresh result elements
+    const elements = ensureCSVResultElements();
+    if (!elements) {
+        console.error('❌ Could not create CSV result elements');
+        return;
+    }
+    
+    const { result, text, count, dupes } = elements;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+    result.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    fetch('/admin/upload_csv', { 
+        method: 'POST', 
+        body: formData 
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return res.json();
+    })
+    .then(data => {
+        if (data.success) {
+            text.textContent = data.message || 'Upload completed';
+            count.textContent = data.questions_added || 0;
+            dupes.textContent = data.duplicates_skipped || 0;
+            result.style.display = 'block';
+            updateQuestionCount();
+            showNotification(`✅ CSV uploaded! Added ${data.questions_added} questions`, 'success');
+        } else {
+            throw new Error(data.error || 'Upload failed');
+        }
+    })
+    .catch(err => {
+        text.textContent = 'Error: ' + err.message;
+        count.textContent = '0';
+        dupes.textContent = '0';
+        result.style.display = 'block';
+        showNotification('❌ Upload Error: ' + err.message, 'danger');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-upload"></i> Upload CSV';
+    });
+});
+
+function showNotification(message, type = 'info') {
+    // Remove existing notifications first
+    const existingNotifications = document.querySelectorAll('.position-fixed.alert');
+    existingNotifications.forEach(notif => notif.remove());
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 8 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 8000);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Admin scraper dashboard loaded');
+    
+    // Check if basic required elements exist
+    const basicElements = ['totalQuestions', 'uniqueQuestions', 'recentlyAdded', 'lastUpdated', 'scrapeForm', 'scrapeBtn', 'refreshStats'];
+    
+    const missingBasic = basicElements.filter(id => !document.getElementById(id));
+    if (missingBasic.length > 0) {
+        console.error('❌ Missing basic elements:', missingBasic);
+    } else {
+        console.log('✅ All basic elements found');
+    }
+    
+    // Debug: Print out session status
+    console.log('🎯 Session Status:', {
+        logged_in: true,
+        is_admin: true, 
+        username: 'admin'
+    });
+    
+    // Initial stats load
+    updateQuestionCount();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(updateQuestionCount, 30000);
+});
+
+// Refresh button handler
+document.getElementById('refreshStats')?.addEventListener('click', function() {
+    updateQuestionCount();
+    showNotification('📊 Statistics refreshed!', 'info');
+});
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.alert {
+    border: none;
+    border-radius: 10px;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.form-control {
+    border-radius: 8px;
+}
+
+#scrapeResult, #csvResult {
+    animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.text-primary { font-weight: 600; }
+.text-success { font-weight: 600; }
+.text-warning { font-weight: 600; }
+.text-info { font-weight: 600; }
+</style>
+{% endblock content %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow p-4" style="max-width: 700px; margin: auto;">
+        <h3 class="mb-3 text-center">✏️ Edit Question</h3>
+
+        <form method="POST" action="{{ url_for('edit_question_form', question_id=question.id) }}">
+            <!-- Question -->
+            <div class="mb-3">
+                <label class="form-label">Question Text</label>
+                <textarea name="question_text" class="form-control" rows="3" required>{{ question.question_text }}</textarea>
+            </div>
+
+            <!-- Options -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Option A</label>
+                    <input type="text" name="option_a" class="form-control" value="{{ question.option_a }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Option B</label>
+                    <input type="text" name="option_b" class="form-control" value="{{ question.option_b }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Option C</label>
+                    <input type="text" name="option_c" class="form-control" value="{{ question.option_c }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Option D</label>
+                    <input type="text" name="option_d" class="form-control" value="{{ question.option_d }}" required>
+                </div>
+            </div>
+
+            <!-- Correct Option -->
+            <div class="mb-3">
+                <label class="form-label">Correct Option</label>
+                <select name="correct_option" class="form-select" required>
+                    <option value="a" {% if question.correct_option == "a" %}selected{% endif %}>A</option>
+                    <option value="b" {% if question.correct_option == "b" %}selected{% endif %}>B</option>
+                    <option value="c" {% if question.correct_option == "c" %}selected{% endif %}>C</option>
+                    <option value="d" {% if question.correct_option == "d" %}selected{% endif %}>D</option>
+                </select>
+            </div>
+
+            <!-- Topic -->
+            <div class="mb-3">
+                <label class="form-label">Topic</label>
+                <input type="text" name="topic" class="form-control" value="{{ question.topic }}" required>
+            </div>
+
+            <!-- Difficulty -->
+            <div class="mb-3">
+                <label class="form-label">Difficulty</label>
+                <select name="difficulty" class="form-select" required>
+                    <option value="easy" {% if question.difficulty == "easy" %}selected{% endif %}>Easy</option>
+                    <option value="medium" {% if question.difficulty == "medium" %}selected{% endif %}>Medium</option>
+                    <option value="hard" {% if question.difficulty == "hard" %}selected{% endif %}>Hard</option>
+                </select>
+            </div>
+
+            <!-- Submit + Cancel -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="/admin/dashboard?token={{ token }}" class="btn btn-secondary">⬅ Back</a>
+                <button type="submit" class="btn btn-success">💾 Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

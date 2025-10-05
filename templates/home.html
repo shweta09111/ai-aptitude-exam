@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
+    <div class="card shadow-lg text-center p-5" style="max-width: 500px; width: 100%;">
+        <h2 class="mb-3">🤖 AI-Augmented Aptitude Exam</h2>
+        <p class="text-muted">An adaptive testing platform powered by AI.</p>
+        <div class="d-grid gap-2 mt-4">
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-person-plus"></i> Register
+            </a>
+            <a href="/login?token={{ token }}" class="btn btn-dark btn-lg">
+                <i class="bi bi-box-arrow-in-right"></i> Login
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

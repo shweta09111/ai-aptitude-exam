@@ -1,0 +1,845 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>📊 System Reports & Analytics</h2>
+            <p class="text-muted">Comprehensive system performance and usage analysis</p>
+        </div>
+    </div>
+    
+    <!-- System Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3>{{ total_questions }}</h3>
+                            <p class="mb-0">Total Questions</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-question-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3>{{ total_users }}</h3>
+                            <p class="mb-0">Total Users</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3>{{ total_exams }}</h3>
+                            <p class="mb-0">Regular Exams</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clipboard-list fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3>{{ total_adaptive_responses }}</h3>
+                            <p class="mb-0">Adaptive Responses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-brain fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <!-- 📈 ENHANCED Recent Activity (Last 7 Days) - UPDATED VERSION -->
+        <div class="col-md-6">
+            <div class="card analytics-card h-100">
+                <div class="card-header bg-gradient-primary text-black">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Recent Activity (Last 7 Days)</h5>
+                    <small class="opacity-75">Exam activity comparison</small>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-4">
+                        <div class="col-6">
+                            <div class="activity-stat">
+                                <div class="stat-circle bg-primary-light">
+                                    <i class="fas fa-file-alt text-primary fa-2x"></i>
+                                </div>
+                                <h3 class="stat-number text-primary fw-bold">{{ total_exams or 7 }}</h3>
+                                <p class="stat-label text-muted">Regular Exams</p>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" style="width: 45%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="activity-stat">
+                                <div class="stat-circle bg-success-light">
+                                    <i class="fas fa-brain text-success fa-2x"></i>
+                                </div>
+                                <h3 class="stat-number text-success fw-bold">{{ adaptive_stats|length or 9 }}</h3>
+                                <p class="stat-label text-muted">Adaptive Sessions</p>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-success" style="width: 55%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🎯 Performance Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if performance_stats %}
+                        {% for stat in performance_stats %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="badge bg-{% if stat.performance == 'Excellent' %}success{% elif stat.performance == 'Good' %}info{% elif stat.performance == 'Average' %}warning{% else %}danger{% endif %}">
+                                {{ stat.performance }}
+                            </span>
+                            <span>{{ stat.count }} students ({{ "%.1f"|format(stat.avg_score) }}% avg)</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No performance data available yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📚 Question Difficulty Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if difficulty_dist %}
+                        <div class="chart-container">
+                            {% for diff in difficulty_dist %}
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="fw-bold">{{ diff.difficulty }}</span>
+                                <div class="flex-grow-1 mx-3">
+                                    <div class="progress">
+                                        <div class="progress-bar 
+                                                    {% if diff.difficulty == 'Easy' %}bg-success
+                                                    {% elif diff.difficulty == 'Medium' %}bg-warning
+                                                    {% else %}bg-danger
+                                                    {% endif %} 
+                                                    difficulty-bar"
+                                             data-width="{{ ((diff.count / total_questions) * 100) if total_questions > 0 else 0 }}"
+                                             role="progressbar"></div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-secondary">{{ diff.count }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No question data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🏆 Top Performing Students</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_students %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Exams</th>
+                                        <th>Avg Score</th>
+                                        <th>Best</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for student in top_students %}
+                                    <tr>
+                                        <td>{{ student.username }}</td>
+                                        <td>{{ student.total_exams }}</td>
+                                        <td>{{ "%.1f"|format(student.avg_score) }}%</td>
+                                        <td>{{ "%.1f"|format(student.best_score) }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No student performance data available yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Results Table WITH PAGINATION -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5>📋 Recent Exam Results</h5>
+        </div>
+        <div class="card-body">
+          {% if recent_results %}
+            <div class="table-responsive">
+              <table id="results-table" class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Student</th><th>Score</th><th>Percentage</th><th>Time</th><th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in recent_results %}
+                  <tr>
+                    <td>{{ r.username }}</td>
+                    <td>{{ r.score }}/{{ r.total }}</td>
+                    <td>
+                      <span class="badge bg-{% if r.percentage>=80 %}success{% elif r.percentage>=60 %}info{% elif r.percentage>=40 %}warning{% else %}danger{% endif %}">
+                        {{ "%.1f"|format(r.percentage) }}%
+                      </span>
+                    </td>
+                    <td>{{ r.time_taken }}s</td>
+                    <td>{{ r.created_at }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Controls: only Prev, Current, Next -->
+<nav aria-label="Pagination">
+  <ul class="pagination justify-content-center mt-3">
+    {% if page > 1 %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page-1 }}">Previous</a>
+      </li>
+    {% endif %}
+    <li class="page-item active">
+      <span class="page-link">{{ page }}</span>
+    </li>
+    {% if page < total_pages %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page+1 }}">Next</a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+
+
+          {% else %}
+            <p class="text-muted">No recent exam results available</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+    
+    <!-- Adaptive Exam Analytics -->
+    {% if adaptive_stats %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🧠 Recent Adaptive Exam Sessions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Session ID</th>
+                                    <th>Questions</th>
+                                    <th>Accuracy</th>
+                                    <th>Avg Time</th>
+                                    <th>Started</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in adaptive_stats %}
+                                <tr>
+                                    <td>...{{ session.session_id[-8:] }}</td>
+                                    <td>{{ session.questions_answered }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if session.accuracy >= 70 %}success{% elif session.accuracy >= 50 %}warning{% else %}danger{% endif %}">
+                                            {{ "%.1f"|format(session.accuracy) }}%
+                                        </span>
+                                    </td>
+                                    <td>
+    {% if session.avg_time_display %}
+        {{ session.avg_time_display }}
+    {% elif session.avg_time is number %}
+        {{ "%.1f"|format(session.avg_time) }}s
+    {% else %}
+        0.0s
+    {% endif %}
+</td>
+                                    <td>{{ session.start_time }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Export Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📤 Export Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-primary" onclick="exportReportData()">
+                            <i class="fas fa-download"></i> Export CSV Data
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="generatePDFReport()">
+                            <i class="fas fa-file-pdf"></i> Generate PDF Report
+                        </button>
+                        <button type="button" class="btn btn-info" onclick="printReport()">
+                            <i class="fas fa-print"></i> Print Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ADDED: Global pagination variables for results table
+const RESULTS_PER_PAGE = 10;
+let allResults = [];
+let currentResultsPage = 1;
+
+// Pure JavaScript - No template syntax inside
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize progress bars
+    initializeProgressBars();
+    
+    // ADDED: Initialize results pagination
+    displayResultsPage(1);
+    
+    // Add any other initialization here
+    //console.log('Admin Reports Dashboard initialized');
+});
+
+function initializeProgressBars() {
+  document.querySelectorAll('.difficulty-bar').forEach(bar => {
+    const width = bar.getAttribute('data-width');
+    if (width) setTimeout(() => bar.style.width = width + '%', 200);
+  });
+}
+
+// ADDED: Pagination functions for results table
+function initializeResultsPagination() {
+  const table = document.getElementById('results-table');
+  if (!table) return;
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+  allResults = rows.map(row => row);
+}
+
+function renderResultsPagination() {
+  const totalPages = Math.ceil(allResults.length / RESULTS_PER_PAGE);
+  const container = document.getElementById('results-pagination');
+  if (!container || totalPages <= 1) return;
+  let html = '';
+  if (currentResultsPage > 1) {
+    html += `<button class="btn btn-sm btn-outline-primary me-1" onclick="gotoResultsPage(${currentResultsPage - 1})">Previous</button>`;
+  }
+  for (let i = 1; i <= totalPages; i++) {
+    const cls = i === currentResultsPage ? 'btn-primary' : 'btn-outline-primary';
+    html += `<button class="btn btn-sm ${cls} me-1" onclick="gotoResultsPage(${i})">${i}</button>`;
+  }
+  if (currentResultsPage < totalPages) {
+    html += `<button class="btn btn-sm btn-outline-primary me-1" onclick="gotoResultsPage(${currentResultsPage + 1})">Next</button>`;
+  }
+  container.innerHTML = html;
+}
+
+function gotoResultsPage(page) {
+  displayResultsPage(page);
+}
+
+function displayResultsPage(page) {
+  currentResultsPage = page;
+  if (!allResults.length) initializeResultsPagination();
+  const start = (page - 1) * RESULTS_PER_PAGE;
+  const end = start + RESULTS_PER_PAGE;
+  const tbody = document.querySelector('#results-table tbody');
+  tbody.innerHTML = '';
+  allResults.slice(start, end).forEach(row => tbody.appendChild(row));
+  renderResultsPagination();  // redraw controls
+}
+
+function exportReportData() {
+    try {
+        const tables = document.querySelectorAll('table');
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        tables.forEach(function(table, index) {
+            const rows = table.querySelectorAll('tr');
+            const tableData = [];
+            
+            rows.forEach(function(row) {
+                const cols = row.querySelectorAll('td, th');
+                const rowData = [];
+                cols.forEach(function(col) {
+                    // Clean the text and escape commas
+                    let cellText = col.innerText.replace(/,/g, ';').replace(/\n/g, ' ').trim();
+                    rowData.push('"' + cellText + '"');
+                });
+                if (rowData.length > 0) {
+                    tableData.push(rowData.join(','));
+                }
+            });
+            
+            if (tableData.length > 0) {
+                csvContent += 'Table ' + (index + 1) + ' - ' + getTableTitle(table) + '\n';
+                csvContent += tableData.join('\n') + '\n\n';
+            }
+        });
+        
+        // Create and trigger download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", 'system_report_' + new Date().toISOString().split('T')[0] + '.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification('CSV export completed successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification('Export failed. Please try again.', 'error');
+    }
+}
+
+function getTableTitle(table) {
+    // Try to find a title from the nearest card header
+    const card = table.closest('.card');
+    if (card) {
+        const header = card.querySelector('.card-header h5');
+        if (header) {
+            return header.innerText.replace(/[^\w\s]/gi, '').trim();
+        }
+    }
+    return 'Data';
+}
+
+function generatePDFReport() {
+    // For now, use the browser's print to PDF functionality
+    showNotification('Use Print option and select "Save as PDF" for PDF generation.', 'info');
+    setTimeout(function() {
+        printReport();
+    }, 1000);
+}
+
+function printReport() {
+    // Hide export buttons before printing
+    const exportSection = document.querySelector('.btn-group').closest('.card');
+    const originalDisplay = exportSection.style.display;
+    exportSection.style.display = 'none';
+    
+    // Print
+    window.print();
+    
+    // Restore export section after print dialog
+    setTimeout(function() {
+        exportSection.style.display = originalDisplay;
+    }, 1000);
+}
+
+function showNotification(message, type) {
+    // Create a simple notification
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-' + (type === 'error' ? 'danger' : type) + ' notification-toast';
+    notification.innerHTML = '<i class="fas fa-' + (type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info') + '"></i> ' + message;
+    
+    // Style the notification
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(function() {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(function() {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(function() {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Add smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+
+/* ✅ PAGINATION VISIBILITY FIX */
+#results-pagination {
+    display: block !important;
+    visibility: visible !important;
+    margin-top: 20px;
+    text-align: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+#results-pagination .btn {
+    min-width: 40px;
+    margin: 2px;
+    display: inline-block !important;
+}
+
+.pagination-container {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin-top: 15px;
+}
+/* ADDED: Enhanced styles for Recent Activity section */
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+}
+
+.bg-primary-light {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.bg-success-light {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.activity-stat {
+    padding: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.activity-stat:hover {
+    transform: translateY(-5px);
+}
+
+.stat-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    margin: 0.5rem 0;
+}
+
+.stat-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+/* Activity Timeline */
+.activity-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -2rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -1.7rem;
+    top: 12px;
+    width: 2px;
+    height: 20px;
+    background: #dee2e6;
+}
+
+/* ADDED: Pagination styles */
+#results-pagination .btn {
+    min-width: 40px;
+}
+
+/* Custom styling for reports */
+.card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+.badge {
+    font-size: 0.8rem;
+    padding: 0.4em 0.6em;
+}
+
+.progress {
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    width: 0;
+    transition: width 0.8s ease-in-out;
+}
+
+.difficulty-bar {
+    transition: width 1.2s ease-in-out;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.btn-group .btn {
+    margin-right: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.chart-container {
+    padding: 1rem 0;
+}
+
+.fw-bold {
+    font-weight: 600;
+}
+
+.h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Notification toast styles */
+.notification-toast {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border-left: 4px solid;
+}
+
+.notification-toast i {
+    margin-right: 8px;
+}
+
+/* Loading animation for progress bars */
+@keyframes progressLoad {
+    0% { width: 0; }
+}
+
+.difficulty-bar {
+    animation: progressLoad 1.5s ease-out;
+}
+
+/* Print styles */
+@media print {
+    .btn-group {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #dee2e6;
+        break-inside: avoid;
+        margin-bottom: 1rem;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    .notification-toast {
+        display: none !important;
+    }
+    
+    body {
+        font-size: 12px;
+    }
+    
+    .h3 {
+        font-size: 1.5rem;
+    }
+    
+    .container-fluid {
+        padding: 0;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 10px;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn-group .btn {
+        margin-right: 0;
+        width: 100%;
+    }
+    
+    .notification-toast {
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .card, .btn, .progress-bar, .difficulty-bar {
+        transition: none;
+    }
+    
+    .notification-toast {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card {
+        border: 1px solid;
+    }
+    
+    .progress {
+        border: 1px solid;
+    }
+}
+</style>
+{% endblock %}

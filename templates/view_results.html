@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">📊 All Students' Results</h2>
+
+    {% if results %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover shadow-sm align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Username</th>
+                        <th>Score</th>
+                        <th>Details</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in results %}
+                    <tr>
+                        <td>{{ row["username"]|default("N/A") }}</td>
+                        <td>
+                            <strong>{{ row["score"]|default(0) }}</strong> / {{ row["total"]|default(0) }}
+                            <br>
+                            <small class="text-muted">
+                                ({{ "%.0f"|format(row["percentage"]|default(0)) }}%)
+                            </small>
+                        </td>
+                        <td style="max-width: 300px;">
+                            <pre class="mb-0 text-wrap" style="white-space: pre-wrap; word-wrap: break-word;">
+{{ row["details"]|default("N/A") }}</pre>
+                        </td>
+                        <td>{{ row["test_date"]|datetimeformat }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="alert alert-info">No results found yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

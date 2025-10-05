@@ -1,0 +1,232 @@
+[
+  {
+    "question_id": 16,
+    "question_text": "What is polymorphism in programming?",
+    "topic": "OOP",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 10,
+    "question_text": "Explain the concept of inheritance in OOP",
+    "topic": "OOP",
+    "current_difficulty": "Medium",
+    "suggested_difficulty": "Medium",
+    "expert_difficulty": "Medium",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 1,
+    "question_text": "What is 2 + 2?",
+    "topic": "Math",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 9,
+    "question_text": "What is normalization in databases?",
+    "topic": "DBMS",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 18,
+    "question_text": "What is the purpose of virtual functions in C++?",
+    "topic": "CPP",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 13,
+    "question_text": "Design a distributed system for handling millions of concurrent users",
+    "topic": "System Design",
+    "current_difficulty": "Hard",
+    "suggested_difficulty": "Hard",
+    "expert_difficulty": "Hard",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 2,
+    "question_text": "Which planet is known as the Red Planet?",
+    "topic": "Science",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 14,
+    "question_text": "Optimize database queries for a high-traffic application",
+    "topic": "Database Optimization",
+    "current_difficulty": "Hard",
+    "suggested_difficulty": "Hard",
+    "expert_difficulty": "Hard",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 6,
+    "question_text": "What is the time complexity of binary search?",
+    "topic": "DSA",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 3,
+    "question_text": "What is the capital of France?",
+    "topic": "Geography",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 12,
+    "question_text": "Analyze the space-time complexity trade-off in dynamic programming",
+    "topic": "Algorithms",
+    "current_difficulty": "Hard",
+    "suggested_difficulty": "Hard",
+    "expert_difficulty": "Hard",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 21,
+    "question_text": "If 25% of a number is 50, what is the number?",
+    "topic": "Quantitative",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 4,
+    "question_text": "In Python, which keyword is used to define a function?",
+    "topic": "Programming",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 5,
+    "question_text": "What does HTML stand for?",
+    "topic": "Web Development",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 19,
+    "question_text": "How does garbage collection work in Java?",
+    "topic": "Java",
+    "current_difficulty": "Medium",
+    "suggested_difficulty": "Medium",
+    "expert_difficulty": "Medium",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 17,
+    "question_text": "Which data structure follows LIFO principle?",
+    "topic": "DSA",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 22,
+    "question_text": "Simple interest on Rs.1000 for 2 years at 5% per annum?",
+    "topic": "Quantitative",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 23,
+    "question_text": "A, B, C can complete work in 6, 8, 12 days. Together in how many days?",
+    "topic": "Quantitative",
+    "current_difficulty": "Medium",
+    "suggested_difficulty": "Medium",
+    "expert_difficulty": "Medium",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 8,
+    "question_text": "What is the difference between TCP and UDP?",
+    "topic": "Networks",
+    "current_difficulty": "Easy",
+    "suggested_difficulty": "Easy",
+    "expert_difficulty": "Easy",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 11,
+    "question_text": "Implement a balanced binary search tree with rotation operations",
+    "topic": "DSA",
+    "current_difficulty": "Hard",
+    "suggested_difficulty": "Hard",
+    "expert_difficulty": "Hard",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 15,
+    "question_text": "What is the banker's algorithm used for in operating systems?",
+    "topic": "Operating Systems",
+    "current_difficulty": "Hard",
+    "suggested_difficulty": "Hard",
+    "expert_difficulty": "Hard",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 20,
+    "question_text": "What is the difference between '==' and 'is' in Python?",
+    "topic": "Python",
+    "current_difficulty": "Medium",
+    "suggested_difficulty": "Medium",
+    "expert_difficulty": "Medium",
+    "confidence": "3",
+    "notes": ""
+  },
+  {
+    "question_id": 7,
+    "question_text": "Which design pattern ensures only one instance of a class?",
+    "topic": "Programming",
+    "current_difficulty": "Hard",
+    "suggested_difficulty": "Hard",
+    "expert_difficulty": "Hard",
+    "confidence": "3",
+    "notes": ""
+  }
+]

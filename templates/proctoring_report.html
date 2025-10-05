@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}AI Proctoring Report - {{ report.session_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3><i class="fas fa-eye"></i> AI Proctoring Report</h3>
+                    <p class="mb-0">Session: {{ report.session_id }}</p>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Session Overview -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-info-circle"></i> Session Details</h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <td><strong>User ID:</strong></td>
+                                    <td>{{ report.user_id }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Start Time:</strong></td>
+                                    <td>{{ report.start_time }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>End Time:</strong></td>
+                                    <td>{{ report.end_time if report.end_time else 'Ongoing' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Duration:</strong></td>
+                                    <td>{{ report.duration if report.duration else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if report.status == 'completed' else 'warning' }}">
+                                            {{ report.status.title() }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-chart-bar"></i> Violation Summary</h5>
+                            <div class="alert alert-{{ 'danger' if report.total_violations > 5 else 'warning' if report.total_violations > 0 else 'success' }}">
+                                <h4 class="alert-heading">Total Violations: {{ report.total_violations }}</h4>
+                                {% if report.total_violations == 0 %}
+                                    <p class="mb-0">✅ Clean session - No violations detected</p>
+                                {% elif report.total_violations <= 5 %}
+                                    <p class="mb-0">⚠️ Moderate violations - Review recommended</p>
+                                {% else %}
+                                    <p class="mb-0">🚨 High violations - Investigation required</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Violation Breakdown -->
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="text-danger">{{ report.face_violations }}</h5>
+                                            <small>Face Not Detected</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="text-warning">{{ report.multiple_faces }}</h5>
+                                            <small>Multiple Faces</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detailed Violations Log -->
+                    {% if report.violations %}
+                    <div class="mb-4">
+                        <h5><i class="fas fa-list"></i> Detailed Violations Log</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Severity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for violation in report.violations %}
+                                    <tr>
+                                        <td>{{ violation.timestamp }}</td>
+                                        <td>
+                                            <span class="badge badge-{{ 'danger' if violation.type == 'no_face' else 'warning' }}">
+                                                {{ violation.type.replace('_', ' ').title() }}
+                                            </span>
+                                        </td>
+                                        <td>{{ violation.description }}</td>
+                                        <td>
+                                            {% if violation.severity == 'high' %}
+                                                <span class="text-danger">🔴 High</span>
+                                            {% elif violation.severity == 'medium' %}
+                                                <span class="text-warning">🟡 Medium</span>
+                                            {% else %}
+                                                <span class="text-info">🔵 Low</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Camera Statistics -->
+                    {% if report.camera_stats %}
+                    <div class="mb-4">
+                        <h5><i class="fas fa-camera"></i> Camera Statistics</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h4>{{ report.camera_stats.frames_processed }}</h4>
+                                        <small>Frames Processed</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h4>{{ "%.1f"|format(report.camera_stats.face_detection_rate * 100) }}%</h4>
+                                        <small>Face Detection Rate</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h4>{{ report.camera_stats.avg_faces_per_frame }}</h4>
+                                        <small>Avg Faces/Frame</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-secondary text-white">
+                                    <div class="card-body text-center">
+                                        <h4>{{ "%.1f"|format(report.camera_stats.monitoring_uptime * 100) }}%</h4>
+                                        <small>Monitoring Uptime</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Recommendations -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-lightbulb"></i> Recommendations</h5>
+                        <div class="alert alert-info">
+                            {% if report.total_violations == 0 %}
+                                <p class="mb-0"><strong>✅ Excellent:</strong> Student showed exemplary behavior throughout the exam. No further action required.</p>
+                            {% elif report.total_violations <= 2 %}
+                                <p class="mb-0"><strong>✅ Good:</strong> Minor violations detected. Likely environmental factors. Consider reviewing specific timestamps if needed.</p>
+                            {% elif report.total_violations <= 5 %}
+                                <p class="mb-0"><strong>⚠️ Moderate:</strong> Several violations detected. Recommend reviewing exam video footage and consider discussing with student.</p>
+                            {% else %}
+                                <p class="mb-0"><strong>🚨 High Alert:</strong> Significant violations detected. Immediate review required. Consider exam validity and potential academic integrity investigation.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="text-center">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                        <button class="btn btn-primary" onclick="window.print()">
+                            <i class="fas fa-print"></i> Print Report
+                        </button>
+                        {% if report.video_available %}
+                        <a href="{{ url_for('admin_proctoring_video', session_id=report.session_id) }}" class="btn btn-info">
+                            <i class="fas fa-video"></i> View Video
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header { 
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+</style>
+{% endblock %}

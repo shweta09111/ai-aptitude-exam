@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Database (local SQLite only - PostgreSQL is on Vercel)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+*.csv
+*.xls
+*.xlsx
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Model files (too large for git)
+trained_models/
+models/*.pkl
+*.h5
+*.model
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Backup files
+*-backup.py
+*.bak
+
+# Documentation drafts
+*_DRAFT.md

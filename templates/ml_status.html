@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}ML Status - AI Aptitude Exam{% endblock title %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1><i class="fas fa-brain text-primary"></i> Machine Learning Status</h1>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-brain fa-3x text-success mb-3"></i>
+                    <h5>ML Engine</h5>
+                    <span class="badge bg-success">Active</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                    <h5>Adaptive Algorithm</h5>
+                    <span class="badge bg-info">Processing</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-database fa-3x text-warning mb-3"></i>
+                    <h5>Training Data</h5>
+                    <span class="badge bg-warning">Ready</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 
+                Machine Learning engine is operational and ready for adaptive testing.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

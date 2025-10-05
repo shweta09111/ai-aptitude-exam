@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Regular Exam</h2>
+    
+    <div id="exam-container">
+        <div id="question-container">
+            <p>Loading questions...</p>
+        </div>
+    
+
+        <div id="controls" style="display: none;">
+            <button id="start-exam" class="btn btn-primary">Start Exam</button>
+            <button id="next-question" class="btn btn-success" style="display: none;">Next Question</button>
+            <button id="submit-exam" class="btn btn-danger" style="display: none;">Submit Exam</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentQuestion = 0;
+let questions = [];
+let answers = [];
+let startTime = Date.now();
+
+// Load questions - NO TOKEN REQUIRED
+function loadQuestions() {
+    console.log('Loading questions...');
+    
+    fetch('/api/get_questions?count=10')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Questions loaded:', data);
+            
+            if (data.status === 'success') {
+                questions = data.questions;
+                document.getElementById('question-container').innerHTML = 
+                    '<div class="alert alert-info">Ready to start! You will answer ' + questions.length + ' questions.</div>';
+                document.getElementById('controls').style.display = 'block';
+            } else {
+                document.getElementById('question-container').innerHTML = 
+                    '<div class="alert alert-danger">Error loading questions: ' + (data.error || 'Unknown error') + '</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Questions loading error:', error);
+            document.getElementById('question-container').innerHTML = 
+                '<div class="alert alert-danger">Network error: ' + error.message + '<br><small>Please check your internet connection and try again.</small></div>';
+        });
+}
+
+// Start exam
+document.getElementById('start-exam').onclick = function() {
+    this.style.display = 'none';
+    startTime = Date.now();
+    showQuestion(0);
+}
+
+function showQuestion(index) {
+    if (index >= questions.length) {
+        document.getElementById('submit-exam').style.display = 'block';
+        document.getElementById('next-question').style.display = 'none';
+        return;
+    }
+    
+    const q = questions[index];
+    document.getElementById('question-container').innerHTML = `
+        <div class="card">
+            <div class="card-body">
+                <h5>Question ${index + 1} of ${questions.length}</h5>
+                <p>${q.question_text}</p>
+                
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="answer" value="a" id="option-a">
+                    <label class="form-check-label" for="option-a">A. ${q.option_a}</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="answer" value="b" id="option-b">
+                    <label class="form-check-label" for="option-b">B. ${q.option_b}</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="answer" value="c" id="option-c">
+                    <label class="form-check-label" for="option-c">C. ${q.option_c}</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="answer" value="d" id="option-d">
+                    <label class="form-check-label" for="option-d">D. ${q.option_d}</label>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('next-question').style.display = 'block';
+}
+
+// Next question
+document.getElementById('next-question').onclick = function() {
+    const selected = document.querySelector('input[name="answer"]:checked');
+    
+    if (selected) {
+        answers.push({
+            question_id: questions[currentQuestion].id,
+            selected_option: selected.value,
+            is_correct: selected.value === questions[currentQuestion].correct_answer,
+            time_taken: Math.floor((Date.now() - startTime) / 1000)
+        });
+        
+        currentQuestion++;
+        showQuestion(currentQuestion);
+    } else {
+        alert('Please select an answer before continuing.');
+    }
+}
+
+// Submit exam - NO TOKEN REQUIRED
+document.getElementById('submit-exam').onclick = function() {
+    if (answers.length === questions.length) {
+        const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+        
+        console.log('Submitting exam...');
+        console.log('Responses:', answers);
+        
+        fetch('/api/submit_exam', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                responses: answers,
+                time_taken: timeElapsed,
+                exam_type: 'regular'
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Exam submitted:', data);
+            
+            if (data.success) {
+                const minutes = Math.floor(timeElapsed / 60);
+                const seconds = timeElapsed % 60;
+                alert(`Exam submitted successfully!\nScore: ${data.score}/${data.total_questions}\nPercentage: ${data.percentage}%\nTime: ${minutes}:${seconds.toString().padStart(2, '0')}`);
+                window.location.href = '/my_results';
+            } else {
+                alert('Error submitting exam: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Exam submission error:', error);
+            alert('Network error: ' + error.message + '\nPlease try again.');
+        });
+    } else {
+        alert('Please answer all questions before submitting.');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('TOKEN-FREE Regular Exam initialized');
+    loadQuestions();
+});
+</script>
+{% endblock %}

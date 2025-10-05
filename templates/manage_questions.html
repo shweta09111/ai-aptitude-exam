@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow p-4">
+        <h2 class="mb-3 text-center">📋 Manage Questions</h2>
+        <p class="text-muted text-center">Total: {{ total or 0 }} questions in database</p>
+
+        <div class="d-flex justify-content-between mb-3">
+            <a href="/add_question?token={{ token }}" class="btn btn-primary">➕ Add Question</a>
+            <a href="/admin/dashboard?token={{ token }}" class="btn btn-secondary">⬅️ Back to Dashboard</a>
+        </div>
+
+        <!-- Debug Info -->
+        <div class="alert alert-info">
+            <strong>Debug Info:</strong><br>
+            - Total in DB: {{ total or 0 }}<br>
+            - Questions fetched: {{ questions|length if questions else 0 }}<br>
+            - Current page: {{ page or 1 }}<br>
+            - Search: {{ search or 'None' }}<br>
+            - Filter: {{ difficulty_filter or 'all' }}
+        </div>
+
+        {% if questions and questions|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Question</th>
+                        <th>Topic</th>
+                        <th>Difficulty</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in questions %}
+                    <tr>
+                        <td>{{ q.id or q[0] }}</td>
+                        <td>{{ (q.question_text or q[1])[:80] }}{% if (q.question_text or q[1])|length > 80 %}...{% endif %}</td>
+                        <td>{{ q.topic or q[2] or 'N/A' }}</td>
+                        <td>
+                            <span class="badge bg-primary">{{ (q.difficulty or q[3]) or 'None' }}</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-warning">✏️ Edit</button>
+                            <button class="btn btn-sm btn-danger">🗑️ Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Simple Pagination -->
+        {% if total > 20 %}
+        <div class="d-flex justify-content-center">
+            {% if page > 1 %}
+                <a href="?page={{ page - 1 }}" class="btn btn-outline-primary me-2">« Previous</a>
+            {% endif %}
+            
+            <span class="btn btn-primary disabled">Page {{ page or 1 }}</span>
+            
+            {% if (page or 1) * 20 < total %}
+                <a href="?page={{ (page or 1) + 1 }}" class="btn btn-outline-primary ms-2">Next »</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+            <div class="alert alert-warning text-center">
+                <h4>📭 No Questions Found in Current View</h4>
+                <p><strong>Database has {{ total or 0 }} total questions</strong></p>
+                {% if total and total > 0 %}
+                    <p>Questions exist but not showing. This might be a pagination or filtering issue.</p>
+                    <a href="{{ url_for('manage_questions') }}?page=1" class="btn btn-primary">Go to First Page</a>
+                {% else %}
+                    <p>No questions in database. Add some questions first.</p>
+                    <a href="{{ url_for('add_question') }}" class="btn btn-primary">Add Questions</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

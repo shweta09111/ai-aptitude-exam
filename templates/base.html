@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Aptitude Exam{% endblock title %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom styles -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .main-content {
+            min-height: 80vh;
+        }
+        .welcome-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .feature-card {
+            transition: transform 0.2s;
+            border: none;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 25px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-brain me-2"></i>AI Aptitude Exam
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if session.user_id %}
+                        <!-- Logged in navigation -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if session.user_id %}
+                        <!-- User info and logout -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> {{ session.full_name or session.username }}
+                                {% if session.is_admin %}
+                                    <span class="badge bg-danger ms-1">Admin</span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><h6 class="dropdown-header">{{ session.email }}</h6></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <!-- Guest navigation -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">
+                                <i class="fas fa-user-plus"></i> Register
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}
+        <!-- Default home page content -->
+        <div class="welcome-section">
+            <div class="container">
+                <h1 class="display-4 mb-4">
+                    <i class="fas fa-brain"></i> AI Aptitude Exam System
+                </h1>
+                <p class="lead mb-4">Test your knowledge with our intelligent adaptive examination system</p>
+            </div>
+        </div>
+
+        <div class="container">
+            {% if not session.user_id %}
+            <!-- Guest view -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <div class="card feature-card h-100">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-user-graduate fa-3x text-primary mb-3"></i>
+                            <h4 class="text-primary">For Students</h4>
+                            <p class="text-muted mb-4">Take exams and track your progress with our adaptive learning system</p>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-sign-in-alt"></i> Student Login
+                                </a>
+                                <a href="{{ url_for('register') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-user-plus"></i> Create Account
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card feature-card h-100">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-user-tie fa-3x text-success mb-3"></i>
+                            <h4 class="text-success">For Admins</h4>
+                            <p class="text-muted mb-4">Manage questions, view analytics and monitor system performance</p>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('login') }}" class="btn btn-success btn-lg">
+                                    <i class="fas fa-crown"></i> Admin Login
+                                </a>
+                                <small class="text-muted mt-2">
+                                    <i class="fas fa-key"></i> Demo: admin / admin123
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card feature-card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-brain fa-2x text-warning mb-3"></i>
+                            <h5>Adaptive Exams</h5>
+                            <p class="text-muted">AI-powered questions that adapt to your skill level</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-chart-bar fa-2x text-info mb-3"></i>
+                            <h5>Real-time Analytics</h5>
+                            <p class="text-muted">Comprehensive performance tracking and insights</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-shield-alt fa-2x text-success mb-3"></i>
+                            <h5>Simple & Secure</h5>
+                            <p class="text-muted">Clean session-based authentication, no complications</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Logged in view -->
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-md-8 text-center">
+                        <h2 class="mb-4">
+                            Welcome back, {{ session.full_name or session.username }}!
+                            {% if session.is_admin %}
+                                <span class="badge bg-danger ms-2">Admin</span>
+                            {% endif %}
+                        </h2>
+                        <p class="lead mb-4">Choose an option to get started:</p>
+                        
+                        {% if session.is_admin %}
+                        <!-- Admin options -->
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="{{ url_for('admin_analytics') }}" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-chart-bar"></i> Analytics
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="{{ url_for('manage_questions') }}" class="btn btn-warning btn-lg w-100">
+                                    <i class="fas fa-question-circle"></i> Manage Questions
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="{{ url_for('realtime_dashboard') }}" class="btn btn-info btn-lg w-100">
+                                    <i class="fas fa-chart-line"></i> Real-time Dashboard
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Student options -->
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-tachometer-alt"></i> My Dashboard
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('exam') }}" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-edit"></i> Take Regular Exam
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('adaptive_exam') }}" class="btn btn-warning btn-lg w-100">
+                                    <i class="fas fa-brain"></i> Take Adaptive Exam
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endblock content %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-brain"></i> AI Aptitude Exam System 
+            </p>
+            <small class="text-muted">Simple session authentication like Gmail/Facebook</small>
+        </div>
+    </footer>
+
+   <!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ✅ COMPLETELY FIXED JavaScript - ZERO SYNTAX ERRORS -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ Create clean object first
+    var userSession = {
+        isLoggedIn: false,
+        isAdmin: false,
+        username: 'guest'
+    };
+    
+    // ✅ Set values using separate template blocks (NO MIXING)
+    {% if session.user_id %}
+        userSession.isLoggedIn = true;
+        userSession.username = '{{ session.username|default("user")|e }}';
+    {% endif %}
+    
+    {% if session.is_admin %}
+        userSession.isAdmin = true;
+    {% endif %}
+    
+    console.log('✅ User Session:', userSession);
+    
+    // Auto-hide alerts
+    var alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+    for (var i = 0; i < alerts.length; i++) {
+        (function(alert) {
+            setTimeout(function() {
+                try {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                } catch (e) {
+                    alert.style.display = 'none';
+                }
+            }, 5000);
+        })(alerts[i]);
+    }
+});
+</script>
+
+</body>
+</html>
+
+
+
