@@ -1815,9 +1815,25 @@ def api_adaptive_next_question():
         user_id = session.get('user_id')
         session_id = data.get('session_id') or f"adaptive_{user_id}_{int(time.time())}"
 
-        # Helper: compute how many questions already answered in this session
+        # Ensure responses table exists in the SAME database as other tables
         conn = get_db_connection()
         cursor = conn.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                question_id INTEGER NOT NULL,
+                selected_option TEXT NOT NULL,
+                is_correct BOOLEAN NOT NULL,
+                time_taken INTEGER DEFAULT 0,
+                session_id TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        # Helper: compute how many questions already answered in this session
         cursor.execute("SELECT COUNT(1) FROM responses WHERE session_id = ?", (session_id,))
         answered_count_row = cursor.fetchone()
         questions_answered = answered_count_row[0] if answered_count_row else 0
@@ -1835,7 +1851,7 @@ def api_adaptive_next_question():
             FROM responses r
             JOIN question q ON q.id = r.question_id
             WHERE r.session_id = ?
-            ORDER BY r.created_at DESC, r.id DESC
+            ORDER BY r.id DESC
             LIMIT 1
             """,
             (session_id,)
