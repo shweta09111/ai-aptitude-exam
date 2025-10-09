@@ -615,7 +615,8 @@ def login():
 # Aliases for templates that post to admin/student specific endpoints
 @app.route('/login/admin', methods=['GET', 'POST'])
 def admin_login():
-    """Dedicated admin login endpoint for templates expecting 'admin_login'"""
+    """Admin login endpoint (same behavior as generic login: accepts any user
+    and redirects based on is_admin)."""
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -628,19 +629,19 @@ def admin_login():
         conn.close()
 
         if user and check_password_hash(user['password_hash'], password):
-            if not bool(user['is_admin']):
-                flash('This account is not an admin. Please use Student Login.', 'danger')
-                return render_template('login.html', login_type='admin')
-
             session.clear()
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['full_name'] = user['full_name']
             session['email'] = user['email']
-            session['is_admin'] = True
+            session['is_admin'] = bool(user['is_admin'])
             session['logged_in'] = True
-            flash(f"Welcome Admin {user['full_name']}!", 'success')
-            return redirect(url_for('admin_dashboard'))
+            if session['is_admin']:
+                flash(f"Welcome Admin {user['full_name']}!", 'success')
+                return redirect(url_for('admin_dashboard'))
+            else:
+                flash(f"Welcome {user['full_name']}!", 'success')
+                return redirect(url_for('student_dashboard'))
 
         flash('Invalid username or password', 'danger')
         return render_template('login.html', login_type='admin')
@@ -651,7 +652,8 @@ def admin_login():
 
 @app.route('/login/student', methods=['GET', 'POST'])
 def student_login():
-    """Dedicated student login endpoint for templates expecting 'student_login'"""
+    """Student login endpoint (same behavior as generic login: accepts any user
+    and redirects based on is_admin)."""
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -664,21 +666,19 @@ def student_login():
         conn.close()
 
         if user and check_password_hash(user['password_hash'], password):
-            if bool(user['is_admin']):
-                # Encourage admin to use proper portal
-                session.clear()
-                flash('This is an admin account. Please use Admin Login.', 'warning')
-                return redirect(url_for('admin_login'))
-
             session.clear()
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['full_name'] = user['full_name']
             session['email'] = user['email']
-            session['is_admin'] = False
+            session['is_admin'] = bool(user['is_admin'])
             session['logged_in'] = True
-            flash(f"Welcome {user['full_name']}!", 'success')
-            return redirect(url_for('student_dashboard'))
+            if session['is_admin']:
+                flash(f"Welcome Admin {user['full_name']}!", 'success')
+                return redirect(url_for('admin_dashboard'))
+            else:
+                flash(f"Welcome {user['full_name']}!", 'success')
+                return redirect(url_for('student_dashboard'))
 
         flash('Invalid username or password', 'danger')
         return render_template('login.html', login_type='student')
