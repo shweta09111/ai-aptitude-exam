@@ -612,6 +612,17 @@ def login():
     
     return render_template('login.html')
 
+# Alias routes for backward compatibility with old templates
+@app.route('/login/student', methods=['GET', 'POST'])
+def student_login():
+    """Student login - alias for main login"""
+    return login()
+
+@app.route('/login/admin', methods=['GET', 'POST'])
+def admin_login():
+    """Admin login - alias for main login"""
+    return login()
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """User registration - NO TOKENS"""
