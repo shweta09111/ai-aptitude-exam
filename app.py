@@ -4106,6 +4106,108 @@ def api_admin_dashboard_stats():
         })
 
 
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """Admin Users Management page"""
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = 15
+        offset = (page - 1) * per_page
+        
+        conn = get_db_connection()
+        
+        # Get total count
+        total = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+        
+        # Get users for current page
+        users = conn.execute('''
+            SELECT id, username, email, full_name, is_admin, created_at
+            FROM users 
+            ORDER BY created_at DESC 
+            LIMIT ? OFFSET ?
+        ''', (per_page, offset)).fetchall()
+        
+        conn.close()
+        
+        total_pages = math.ceil(total / per_page)
+        
+        return render_template('admin_users.html', 
+                             users=users, 
+                             total=total,
+                             page=page, 
+                             total_pages=total_pages)
+        
+    except Exception as e:
+        app.logger.error(f"Admin users error: {e}")
+        flash('Error loading users', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/ml_status')
+@admin_required
+def ml_status():
+    """ML Status monitoring page"""
+    try:
+        # Get ML system status
+        ml_systems = {
+            'adaptive_engine': {
+                'name': 'Adaptive Question Engine',
+                'status': 'active',
+                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'description': 'Difficulty-based question selection system'
+            },
+            'bert_analyzer': {
+                'name': 'BERT Text Analyzer', 
+                'status': 'active' if 'bert_analyzer' in globals() else 'inactive',
+                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'description': 'Natural language processing for question analysis'
+            },
+            'proctoring_system': {
+                'name': 'AI Proctoring System',
+                'status': 'active' if 'proctoring_system' in globals() else 'inactive',
+                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'description': 'Computer vision-based exam monitoring'
+            }
+        }
+        
+        return render_template('ml_status.html', ml_systems=ml_systems)
+        
+    except Exception as e:
+        app.logger.error(f"ML Status error: {e}")
+        flash('Error loading ML status', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/api/user/<int:user_id>')
+@admin_required
+def api_user_details(user_id):
+    """Get user details for admin"""
+    try:
+        conn = get_db_connection()
+        user = conn.execute('''
+            SELECT id, username, email, full_name, is_admin, created_at
+            FROM users WHERE id = ?
+        ''', (user_id,)).fetchone()
+        conn.close()
+        
+        if user:
+            return jsonify({
+                'status': 'success',
+                'user': {
+                    'id': user['id'],
+                    'username': user['username'],
+                    'email': user['email'],
+                    'full_name': user['full_name'],
+                    'is_admin': bool(user['is_admin']),
+                    'created_at': user['created_at']
+                }
+            })
+        else:
+            return jsonify({'status': 'error', 'error': 'User not found'}), 404
+            
+    except Exception as e:
+        app.logger.error(f"User details error: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
 @app.route('/get_test_assignment/<int:user_id>')
 @login_required
 def get_test_assignment(user_id):
