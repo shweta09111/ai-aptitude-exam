@@ -612,6 +612,80 @@ def login():
     
     return render_template('login.html')
 
+# Aliases for templates that post to admin/student specific endpoints
+@app.route('/login/admin', methods=['GET', 'POST'])
+def admin_login():
+    """Dedicated admin login endpoint for templates expecting 'admin_login'"""
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        conn = get_db_connection()
+        user = conn.execute('''
+            SELECT id, username, email, password_hash, full_name, is_admin
+            FROM users WHERE username = ?
+        ''', (username,)).fetchone()
+        conn.close()
+
+        if user and check_password_hash(user['password_hash'], password):
+            if not bool(user['is_admin']):
+                flash('This account is not an admin. Please use Student Login.', 'danger')
+                return render_template('login.html', login_type='admin')
+
+            session.clear()
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['full_name'] = user['full_name']
+            session['email'] = user['email']
+            session['is_admin'] = True
+            session['logged_in'] = True
+            flash(f"Welcome Admin {user['full_name']}!", 'success')
+            return redirect(url_for('admin_dashboard'))
+
+        flash('Invalid username or password', 'danger')
+        return render_template('login.html', login_type='admin')
+
+    # GET
+    return render_template('login.html', login_type='admin')
+
+
+@app.route('/login/student', methods=['GET', 'POST'])
+def student_login():
+    """Dedicated student login endpoint for templates expecting 'student_login'"""
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        conn = get_db_connection()
+        user = conn.execute('''
+            SELECT id, username, email, password_hash, full_name, is_admin
+            FROM users WHERE username = ?
+        ''', (username,)).fetchone()
+        conn.close()
+
+        if user and check_password_hash(user['password_hash'], password):
+            if bool(user['is_admin']):
+                # Encourage admin to use proper portal
+                session.clear()
+                flash('This is an admin account. Please use Admin Login.', 'warning')
+                return redirect(url_for('admin_login'))
+
+            session.clear()
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['full_name'] = user['full_name']
+            session['email'] = user['email']
+            session['is_admin'] = False
+            session['logged_in'] = True
+            flash(f"Welcome {user['full_name']}!", 'success')
+            return redirect(url_for('student_dashboard'))
+
+        flash('Invalid username or password', 'danger')
+        return render_template('login.html', login_type='student')
+
+    # GET
+    return render_template('login.html', login_type='student')
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """User registration - NO TOKENS"""
