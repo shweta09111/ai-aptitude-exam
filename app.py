@@ -1411,7 +1411,7 @@ def api_get_questions():
 @app.route('/api/submit_exam', methods=['POST'])
 @login_required
 def api_submit_exam():
-    """MINIMAL FIX: Only fix total_questions issue"""
+    """Fixed: Handle both 'answers' and 'responses' formats"""
     try:
         data = request.get_json()
         user_id = session.get('user_id')
@@ -1419,25 +1419,47 @@ def api_submit_exam():
         if not data or not user_id:
             return jsonify({'success': False, 'error': 'Invalid request'})
         
-        answers = data.get('answers', {})
+        # ✅ FIX: Accept both 'responses' (new format) and 'answers' (old format)
+        responses = data.get('responses', [])
+        answers_dict = data.get('answers', {})
+        
         time_taken = data.get('time_taken', 0) or data.get('totalTime', 0)
         session_id = data.get('session_id', f"regular_{user_id}_{int(time.time())}")
-        
-        # ✅ FIX: Ensure total_questions is correctly calculated
-        total_questions = len(answers) if answers else 10  # Default to 10
         
         # Calculate correct answers
         conn = get_db_connection()
         correct_count = 0
+        total_questions = 0
         
-        for question_id, user_answer in answers.items():
-            question = conn.execute(
-                'SELECT correct_option FROM question WHERE id = ?', 
-                (question_id,)
-            ).fetchone()
-            
-            if question and question['correct_option'].lower() == str(user_answer).lower():
-                correct_count += 1
+        # ✅ Handle array format (responses: [{question_id, selected_option, is_correct}])
+        if responses and isinstance(responses, list):
+            total_questions = len(responses)
+            for response in responses:
+                question_id = response.get('question_id')
+                user_answer = response.get('selected_option')
+                
+                question = conn.execute(
+                    'SELECT correct_option FROM question WHERE id = ?', 
+                    (question_id,)
+                ).fetchone()
+                
+                if question and question['correct_option'].lower() == str(user_answer).lower():
+                    correct_count += 1
+        
+        # ✅ Handle dict format (answers: {question_id: answer})
+        elif answers_dict:
+            total_questions = len(answers_dict)
+            for question_id, user_answer in answers_dict.items():
+                question = conn.execute(
+                    'SELECT correct_option FROM question WHERE id = ?', 
+                    (question_id,)
+                ).fetchone()
+                
+                if question and question['correct_option'].lower() == str(user_answer).lower():
+                    correct_count += 1
+        
+        else:
+            total_questions = 10  # Default fallback
         
         conn.close()
         
