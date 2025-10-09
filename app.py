@@ -571,7 +571,12 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """User login - SIMPLE SESSION VERSION (NO TOKENS)"""
+    """Generic login - redirects to role-specific page"""
+    return redirect(url_for('student_login'))
+
+@app.route('/login/student', methods=['GET', 'POST'])
+def student_login():
+    """Student login - validates user is NOT admin"""
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -588,6 +593,11 @@ def login():
         conn.close()
         
         if user and check_password_hash(user['password_hash'], password):
+            # Check if user is trying to login as admin through student portal
+            if user['is_admin']:
+                flash('Admin accounts cannot login here. Please use Admin Login.', 'danger')
+                return render_template('login.html', login_type='student')
+            
             # Clear any existing session
             session.clear()
             
@@ -596,21 +606,59 @@ def login():
             session['username'] = user['username']
             session['full_name'] = user['full_name']
             session['email'] = user['email']
-            session['is_admin'] = bool(user['is_admin'])
+            session['is_admin'] = False
             session['logged_in'] = True
             
-            app.logger.info(f"User logged in: {username} (Admin: {bool(user['is_admin'])})")
-            
-            if user['is_admin']:
-                flash(f'Welcome Admin {user["full_name"]}!', 'success')
-                return redirect(url_for('admin_dashboard'))
-            else:
-                flash(f'Welcome {user["full_name"]}!', 'success')
-                return redirect(url_for('student_dashboard'))
+            app.logger.info(f"Student logged in: {username}")
+            flash(f'Welcome {user["full_name"]}!', 'success')
+            return redirect(url_for('student_dashboard'))
         else:
             flash('Invalid username or password', 'danger')
     
-    return render_template('login.html')
+    return render_template('login.html', login_type='student')
+
+@app.route('/login/admin', methods=['GET', 'POST'])
+def admin_login():
+    """Admin login - validates user IS admin"""
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        conn = get_db_connection()
+        user = conn.execute('''
+            SELECT id, username, email, 
+                   password_hash, 
+                   full_name, 
+                   is_admin 
+            FROM users WHERE username = ?
+        ''', (username,)).fetchone()
+
+        conn.close()
+        
+        if user and check_password_hash(user['password_hash'], password):
+            # Check if user is NOT admin
+            if not user['is_admin']:
+                flash('This account is not an admin. Please use Student Login.', 'danger')
+                return render_template('login.html', login_type='admin')
+            
+            # Clear any existing session
+            session.clear()
+            
+            # Set simple session variables - NO TOKENS
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['full_name'] = user['full_name']
+            session['email'] = user['email']
+            session['is_admin'] = True
+            session['logged_in'] = True
+            
+            app.logger.info(f"Admin logged in: {username}")
+            flash(f'Welcome Admin {user["full_name"]}!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid admin credentials', 'danger')
+    
+    return render_template('login.html', login_type='admin')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
