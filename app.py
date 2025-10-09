@@ -4234,6 +4234,7 @@ def api_edit_user(user_id):
         full_name = data.get('full_name', '').strip()
         email = data.get('email', '').strip()
         is_admin = bool(data.get('is_admin', False))
+        password = data.get('password', '').strip()
         
         if not email:
             conn.close()
@@ -4250,11 +4251,21 @@ def api_edit_user(user_id):
             return jsonify({'status': 'error', 'error': 'Email already in use'}), 400
             
         # Update the user
-        conn.execute('''
-            UPDATE users 
-            SET full_name = ?, email = ?, is_admin = ?
-            WHERE id = ?
-        ''', (full_name, email, is_admin, user_id))
+        if password:
+            # Update with new password
+            password_hash = generate_password_hash(password)
+            conn.execute('''
+                UPDATE users 
+                SET full_name = ?, email = ?, is_admin = ?, password_hash = ?
+                WHERE id = ?
+            ''', (full_name, email, is_admin, password_hash, user_id))
+        else:
+            # Update without changing password
+            conn.execute('''
+                UPDATE users 
+                SET full_name = ?, email = ?, is_admin = ?
+                WHERE id = ?
+            ''', (full_name, email, is_admin, user_id))
         
         conn.commit()
         conn.close()
@@ -4263,6 +4274,39 @@ def api_edit_user(user_id):
         
     except Exception as e:
         app.logger.error(f"Edit user error: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/user/<int:user_id>/delete', methods=['DELETE'])
+@admin_required
+def api_delete_user(user_id):
+    """Delete user"""
+    try:
+        conn = get_db_connection()
+        
+        # Check if user exists
+        user = conn.execute('SELECT id, username FROM users WHERE id = ?', (user_id,)).fetchone()
+        if not user:
+            conn.close()
+            return jsonify({'status': 'error', 'error': 'User not found'}), 404
+            
+        # Don't allow deleting the main admin user
+        if user['username'] == 'admin':
+            conn.close()
+            return jsonify({'status': 'error', 'error': 'Cannot delete main admin user'}), 403
+            
+        # Delete user and related data
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM responses WHERE user_id = ?', (user_id,))
+        cursor.execute('DELETE FROM results WHERE user_id = ?', (user_id,))
+        cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'message': 'User deleted successfully'})
+        
+    except Exception as e:
+        app.logger.error(f"Delete user error: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 @app.route('/get_test_assignment/<int:user_id>')
