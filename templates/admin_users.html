@@ -130,6 +130,44 @@
     </div>
 </div>
 
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    
+                    <div class="mb-3">
+                        <label for="editFullName" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="editFullName" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editEmail" required>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editIsAdmin">
+                        <label class="form-check-label" for="editIsAdmin">
+                            Administrator privileges
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveUserBtn" onclick="saveUserChanges()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function viewUser(userId) {
     const modal = new bootstrap.Modal(document.getElementById('userModal'));
@@ -183,7 +221,70 @@ function viewUser(userId) {
 }
 
 function editUser(userId) {
-    alert('Edit user functionality coming soon!');
+    // First get user details
+    fetch(`/api/user/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const user = data.user;
+                showEditModal(user);
+            } else {
+                alert('Error loading user details');
+            }
+        })
+        .catch(error => {
+            alert('Error loading user details');
+        });
+}
+
+function showEditModal(user) {
+    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    
+    // Populate form
+    document.getElementById('editUserId').value = user.id;
+    document.getElementById('editFullName').value = user.full_name || '';
+    document.getElementById('editEmail').value = user.email;
+    document.getElementById('editIsAdmin').checked = user.is_admin;
+    
+    modal.show();
+}
+
+function saveUserChanges() {
+    const userId = document.getElementById('editUserId').value;
+    const fullName = document.getElementById('editFullName').value;
+    const email = document.getElementById('editEmail').value;
+    const isAdmin = document.getElementById('editIsAdmin').checked;
+    
+    const saveBtn = document.getElementById('saveUserBtn');
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+    saveBtn.disabled = true;
+    
+    fetch(`/api/user/${userId}/edit`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            full_name: fullName,
+            email: email,
+            is_admin: isAdmin
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload(); // Refresh page to show changes
+        } else {
+            alert('Error: ' + data.error);
+            saveBtn.innerHTML = 'Save Changes';
+            saveBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('Error saving changes');
+        saveBtn.innerHTML = 'Save Changes';
+        saveBtn.disabled = false;
+    });
 }
 </script>
 {% endblock content %}

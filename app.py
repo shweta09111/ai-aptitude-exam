@@ -4208,6 +4208,63 @@ def api_user_details(user_id):
         app.logger.error(f"User details error: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
+@app.route('/api/user/<int:user_id>/edit', methods=['POST'])
+@admin_required
+def api_edit_user(user_id):
+    """Edit user details"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'No data provided'}), 400
+            
+        conn = get_db_connection()
+        
+        # Check if user exists
+        user = conn.execute('SELECT id, username FROM users WHERE id = ?', (user_id,)).fetchone()
+        if not user:
+            conn.close()
+            return jsonify({'status': 'error', 'error': 'User not found'}), 404
+            
+        # Don't allow editing the main admin user
+        if user['username'] == 'admin':
+            conn.close()
+            return jsonify({'status': 'error', 'error': 'Cannot edit main admin user'}), 403
+            
+        # Update user details
+        full_name = data.get('full_name', '').strip()
+        email = data.get('email', '').strip()
+        is_admin = bool(data.get('is_admin', False))
+        
+        if not email:
+            conn.close()
+            return jsonify({'status': 'error', 'error': 'Email is required'}), 400
+            
+        # Check if email is already taken by another user
+        existing = conn.execute(
+            'SELECT id FROM users WHERE email = ? AND id != ?', 
+            (email, user_id)
+        ).fetchone()
+        
+        if existing:
+            conn.close()
+            return jsonify({'status': 'error', 'error': 'Email already in use'}), 400
+            
+        # Update the user
+        conn.execute('''
+            UPDATE users 
+            SET full_name = ?, email = ?, is_admin = ?
+            WHERE id = ?
+        ''', (full_name, email, is_admin, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'message': 'User updated successfully'})
+        
+    except Exception as e:
+        app.logger.error(f"Edit user error: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
 @app.route('/get_test_assignment/<int:user_id>')
 @login_required
 def get_test_assignment(user_id):
