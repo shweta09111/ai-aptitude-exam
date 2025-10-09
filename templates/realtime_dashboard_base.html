@@ -324,7 +324,9 @@ TokenFreeRealtimeDashboard.prototype.showRealActivity = function(activity) {
     var now = new Date().toLocaleTimeString();
     
     feed.innerHTML = '<div class="activity-item active">' +
-        '<i class="fas fa-chart-line text-success activity-icon"></i>' +
+        '<div class="activity-icon text-success d-flex align-items-center justify-content-center">' +
+            '<i class="fas fa-chart-line"></i>' +
+        '</div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Active Learning Detected</strong>' +
@@ -334,7 +336,9 @@ TokenFreeRealtimeDashboard.prototype.showRealActivity = function(activity) {
         '</div>' +
     '</div>' +
     '<div class="activity-item">' +
-        '<i class="fas fa-target text-info activity-icon"></i>' +
+        '<div class="activity-icon text-info d-flex align-items-center justify-content-center">' +
+            '<i class="fas fa-chart-line"></i>' +
+        '</div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Performance Update</strong>' +
@@ -344,7 +348,9 @@ TokenFreeRealtimeDashboard.prototype.showRealActivity = function(activity) {
         '</div>' +
     '</div>' +
     '<div class="activity-item">' +
-        '<i class="fas fa-brain text-warning activity-icon"></i>' +
+        '<div class="activity-icon text-warning d-flex align-items-center justify-content-center">' +
+            '<i class="fas fa-brain"></i>' +
+        '</div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>AI Engine Active</strong>' +
@@ -360,7 +366,9 @@ TokenFreeRealtimeDashboard.prototype.showSystemActivity = function() {
     var now = new Date().toLocaleTimeString();
     
     feed.innerHTML = '<div class="activity-item">' +
-        '<i class="fas fa-server text-primary activity-icon"></i>' +
+        '<div class="activity-icon text-primary d-flex align-items-center justify-content-center">' +
+            '<i class="fas fa-server"></i>' +
+        '</div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Token-Free System Online</strong>' +
@@ -370,7 +378,9 @@ TokenFreeRealtimeDashboard.prototype.showSystemActivity = function() {
         '</div>' +
     '</div>' +
     '<div class="activity-item">' +
-        '<i class="fas fa-database text-success activity-icon"></i>' +
+        '<div class="activity-icon text-success d-flex align-items-center justify-content-center">' +
+            '<i class="fas fa-database"></i>' +
+        '</div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Database Connected</strong>' +
@@ -380,7 +390,9 @@ TokenFreeRealtimeDashboard.prototype.showSystemActivity = function() {
         '</div>' +
     '</div>' +
     '<div class="activity-item waiting">' +
-        '<i class="fas fa-clock text-muted activity-icon"></i>' +
+        '<div class="activity-icon text-muted d-flex align-items-center justify-content-center">' +
+            '<i class="fas fa-clock"></i>' +
+        '</div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Waiting for Student Activity</strong>' +
