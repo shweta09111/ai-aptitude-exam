@@ -309,7 +309,7 @@
         <!-- Login Form -->
         <div class="form-container login-form">
             <h2>{% if login_type == 'admin' %}Admin Login{% else %}Student Login{% endif %}</h2>
-            <form method="POST" action="{{ url_for('login') }}">
+            <form method="POST" action="{% if login_type == 'admin' %}{{ url_for('admin_login') }}{% else %}{{ url_for('student_login') }}{% endif %}">
                 <div class="input-group">
                     <label>Username</label>
                     <input type="text" name="username" placeholder="" required>
