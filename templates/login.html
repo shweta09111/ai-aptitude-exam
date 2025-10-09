@@ -14,11 +14,7 @@
         }
 
         body {
-            {% if login_type == 'admin' %}
-            background: linear-gradient(135deg, #2c7a3e 0%, #1e5a2e 100%);
-            {% else %}
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            {% endif %}
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -35,11 +31,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            {% if login_type == 'admin' %}
-            background: linear-gradient(135deg, rgba(44, 122, 62, 0.8) 0%, rgba(30, 90, 46, 0.8) 100%);
-            {% else %}
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
-            {% endif %}
             z-index: 0;
         }
 
@@ -94,11 +86,7 @@
             top: 0;
             width: 50%;
             height: 100%;
-            {% if login_type == 'admin' %}
-            background: linear-gradient(135deg, #2c7a3e 0%, #1e5a2e 100%);
-            {% else %}
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            {% endif %}
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -178,11 +166,7 @@
         .btn {
             width: 100%;
             padding: 15px;
-            {% if login_type == 'admin' %}
-            background: linear-gradient(135deg, #2c7a3e 0%, #1e5a2e 100%);
-            {% else %}
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            {% endif %}
             border: none;
             border-radius: 10px;
             color: white;
@@ -191,22 +175,13 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 10px;
-            {% if login_type == 'admin' %}
-            box-shadow: 0 5px 15px rgba(44, 122, 62, 0.3);
-            {% else %}
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-            {% endif %}
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            {% if login_type == 'admin' %}
-            box-shadow: 0 8px 25px rgba(44, 122, 62, 0.4);
-            background: linear-gradient(135deg, #1e5a2e 0%, #2c7a3e 100%);
-            {% else %}
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-            {% endif %}
         }
 
         .btn:active {
@@ -333,10 +308,10 @@
     <div class="container">
         <!-- Login Form -->
         <div class="form-container login-form">
-            <h2>{% if login_type == 'admin' %}<i class="fas fa-crown"></i> Admin {% else %}<i class="fas fa-user-graduate"></i> Student {% endif %}Login</h2>
-            <form method="POST" action="{% if login_type == 'admin' %}{{ url_for('admin_login') }}{% else %}{{ url_for('student_login') }}{% endif %}">
+            <h2>{% if login_type == 'admin' %}Admin Login{% else %}Student Login{% endif %}</h2>
+            <form method="POST" action="{{ url_for('login') }}">
                 <div class="input-group">
-                    <label>{% if login_type == 'admin' %}Admin Username{% else %}Username{% endif %}</label>
+                    <label>Username</label>
                     <input type="text" name="username" placeholder="" required>
                     <i class="fas fa-user"></i>
                 </div>
@@ -345,25 +320,29 @@
                     <input type="password" name="password" placeholder="" required>
                     <i class="fas fa-lock"></i>
                 </div>
-                <button type="submit" class="btn">Login</button>
-                {% if login_type == 'student' %}
-                <div class="signup-link">
-                    Don't have an account?<br>
-                    <a href="{{ url_for('register') }}">Sign Up</a>
-                </div>
+                {% if login_type == 'admin' %}
+                <button type="submit" class="btn" style="background:linear-gradient(135deg,#16a34a 0%, #15803d 100%);">Login</button>
                 {% else %}
-                <div class="signup-link">
-                    Not an admin?<br>
-                    <a href="{{ url_for('student_login') }}">Student Login</a>
-                </div>
+                <button type="submit" class="btn">Login</button>
                 {% endif %}
+                <div class="signup-link">
+                    {% if login_type == 'admin' %}
+                        Not an admin?<br>
+                        <a href="{{ url_for('student_login') }}">Student Login</a>
+                    {% else %}
+                        Don't have an account?<br>
+                        <a href="{{ url_for('register') }}">Sign Up</a>
+                        <br/>
+                        <a href="{{ url_for('admin_login') }}">Admin Login</a>
+                    {% endif %}
+                </div>
             </form>
         </div>
 
         <!-- Welcome Panel -->
         <div class="welcome-panel">
-            <h1>{% if login_type == 'admin' %}ADMIN<br>PORTAL{% else %}WELCOME<br>BACK!{% endif %}</h1>
-            <p>{% if login_type == 'admin' %}Manage your examination system with powerful admin tools.{% else %}We are happy to have you with us again. If you need anything, we are here to help.{% endif %}</p>
+            <h1>WELCOME<br>BACK!</h1>
+            <p>We are happy to have you with us again. If you need anything, we are here to help.</p>
         </div>
     </div>
 

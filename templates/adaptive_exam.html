@@ -10,7 +10,10 @@
   <div id="questionContainer" style="display:none;">
     <div class="card">
       <div class="card-body">
-        <h4 id="questionText"></h4>
+        <div class="d-flex justify-content-between align-items-center">
+          <h4 id="questionText" class="mb-0"></h4>
+          <span class="badge bg-info text-dark" id="difficultyBadge" title="Difficulty"></span>
+        </div>
         <div id="optionsContainer" class="mb-3"></div>
         <button id="submitAnswer" class="btn btn-success" onclick="submitAnswer()">Submit Answer</button>
       </div>
@@ -30,8 +33,7 @@
 </div>
 
 <script>
-    console.log("adaptive_exam.js loaded");
-alert("JS loaded");
+  console.log("adaptive_exam.js loaded");
 // State
 let currentQuestion, sessionId;
 let questionsAnswered = 0, correctAnswers = 0;
@@ -44,6 +46,8 @@ function displayQuestion(q) {
   document.getElementById('submitAnswer').disabled = false;
   document.getElementById('questionText').innerHTML =
     `<strong>Q${questionsAnswered+1}:</strong> ${q.question_text}`;
+  const diff = (q.difficulty || q.target_difficulty || 'Medium');
+  document.getElementById('difficultyBadge').textContent = `Difficulty: ${String(diff).toString()}`;
   document.getElementById('optionsContainer').innerHTML =
     ['a','b','c','d'].map(letter =>
       `<div class="form-check">
@@ -56,7 +60,7 @@ function displayQuestion(q) {
 // Load next question
 function loadNextQuestion() {
   if (questionsAnswered >= totalQuestions) return showCompletion();
-  fetch('/api/next_adaptive_question', {
+  fetch('/api/adaptive/next_question', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -68,11 +72,11 @@ function loadNextQuestion() {
 
   .then(r=>r.json())
   .then(d => {
-    if (d.success && d.question) {
+    if (d.status === 'success' && d.question) {
       currentQuestion = d.question;
-      sessionId = d.session_id;
+      sessionId = d.session_id || sessionId;
       displayQuestion(d.question);
-    } else if (d.complete) {
+    } else if (d.status === 'complete') {
       showCompletion();
     } else {
       throw 'Failed to load';
@@ -87,7 +91,7 @@ function submitAnswer() {
   if (!sel) return alert('Select an answer.');
   document.getElementById('submitAnswer').disabled = true;
   const elapsed = Math.floor((Date.now()-startTime)/1000);
-  fetch('/api/submit_adaptive_response', {
+  fetch('/api/adaptive/submit_response', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -100,9 +104,9 @@ function submitAnswer() {
 
   .then(r=>r.json())
   .then(d => {
-    if (!d.success) throw d.error||'Submit failed';
+    if (d.status !== 'success') throw d.error||'Submit failed';
     questionsAnswered++;
-    if (d.is_correct) correctAnswers++;
+    if (d.correct) correctAnswers++;
     loadNextQuestion();
   })
   .catch(err => {
@@ -135,6 +139,12 @@ function showCompletion() {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loading').style.display = '';
+  // Initialize sessionId if template provided one
+  try {
+    if (typeof session_id !== 'undefined' && session_id) {
+      sessionId = session_id;
+    }
+  } catch (e) {}
   loadNextQuestion();
 });
 
