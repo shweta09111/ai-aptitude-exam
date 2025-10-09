@@ -629,19 +629,20 @@ def admin_login():
         conn.close()
 
         if user and check_password_hash(user['password_hash'], password):
+            # Enforce admin-only on this route
+            if not bool(user['is_admin']):
+                flash('Admin access only. Please use Student Login.', 'danger')
+                return render_template('login.html', login_type='admin')
+
             session.clear()
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['full_name'] = user['full_name']
             session['email'] = user['email']
-            session['is_admin'] = bool(user['is_admin'])
+            session['is_admin'] = True
             session['logged_in'] = True
-            if session['is_admin']:
-                flash(f"Welcome Admin {user['full_name']}!", 'success')
-                return redirect(url_for('admin_dashboard'))
-            else:
-                flash(f"Welcome {user['full_name']}!", 'success')
-                return redirect(url_for('student_dashboard'))
+            flash(f"Welcome Admin {user['full_name']}!", 'success')
+            return redirect(url_for('admin_dashboard'))
 
         flash('Invalid username or password', 'danger')
         return render_template('login.html', login_type='admin')
@@ -666,19 +667,20 @@ def student_login():
         conn.close()
 
         if user and check_password_hash(user['password_hash'], password):
+            # Enforce student-only on this route
+            if bool(user['is_admin']):
+                flash('This is Student Login. Please use Admin Login.', 'danger')
+                return render_template('login.html', login_type='student')
+
             session.clear()
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['full_name'] = user['full_name']
             session['email'] = user['email']
-            session['is_admin'] = bool(user['is_admin'])
+            session['is_admin'] = False
             session['logged_in'] = True
-            if session['is_admin']:
-                flash(f"Welcome Admin {user['full_name']}!", 'success')
-                return redirect(url_for('admin_dashboard'))
-            else:
-                flash(f"Welcome {user['full_name']}!", 'success')
-                return redirect(url_for('student_dashboard'))
+            flash(f"Welcome {user['full_name']}!", 'success')
+            return redirect(url_for('student_dashboard'))
 
         flash('Invalid username or password', 'danger')
         return render_template('login.html', login_type='student')
