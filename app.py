@@ -612,17 +612,6 @@ def login():
     
     return render_template('login.html')
 
-# Alias routes for backward compatibility with old templates
-@app.route('/login/student', methods=['GET', 'POST'])
-def student_login():
-    """Student login - alias for main login"""
-    return login()
-
-@app.route('/login/admin', methods=['GET', 'POST'])
-def admin_login():
-    """Admin login - alias for main login"""
-    return login()
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """User registration - NO TOKENS"""
@@ -1817,162 +1806,159 @@ def ensure_columns_exist():
 
 @app.route('/api/adaptive/next_question', methods=['POST'])
 def api_adaptive_next_question():
-    """Get next adaptive question - TRUE ADAPTIVE VERSION with IRT"""
-    data = request.get_json() or {}
-    user_id = session.get('user_id')
-    session_id = data.get('session_id') or f"adaptive_{user_id}_{int(time.time())}"
-    questions_answered = data.get('questions_answered', 0)
-    
-    if questions_answered >= 10:
-        return jsonify({'status': 'complete', 'message': 'Exam completed'})
-    
-    # Try to use adaptive engine, fallback to simple selection if it fails
+    """Get next adaptive question following the flowchart:
+    Start with Medium -> if correct then harder, if wrong then easier.
+    Avoid repeats within the same session. End after 10 questions.
+    """
     try:
-        from ml_models.adaptive_engine import AdaptiveTestEngine
-        
-        # ✅ Use Adaptive Engine for TRUE adaptive testing
-        engine = AdaptiveTestEngine()
-        question = engine.select_next_question(
-            student_id=user_id,
-            session_id=session_id,
-            exclude_topics=[]
-        )
-        
-        if not question:
-            return jsonify({'status': 'complete', 'message': 'No more questions available'})
-        
-        # Get ability estimate for tracking
-        responses = engine.get_student_responses(user_id, session_id)
-        current_ability = engine.estimate_student_ability(responses)
-        
-        # Format question for frontend
-        formatted_question = {
-            'id': question['id'],
-            'question_text': question['question_text'],
-            'option_a': question['option_a'],
-            'option_b': question['option_b'],
-            'option_c': question['option_c'],
-            'option_d': question['option_d'],
-            'difficulty': question.get('difficulty', 'Medium')
-        }
-        
-        app.logger.info(f"Adaptive question selected: ID={question['id']}, Difficulty={question.get('difficulty')}, Ability={current_ability:.2f}")
-        
-        return jsonify({
-            'status': 'success',
-            'question': formatted_question,
-            'session_id': session_id,
-            'questions_answered': questions_answered,
-            'student_ability': round(current_ability, 2),
-            'target_difficulty': question.get('difficulty', 'Medium')
-        })
-        
-    except Exception as e:
-        app.logger.error(f"Adaptive engine error, using fallback: {e}")
-        # Fallback to simple random selection
+        data = request.get_json() or {}
+        user_id = session.get('user_id')
+        session_id = data.get('session_id') or f"adaptive_{user_id}_{int(time.time())}"
+
+        # Helper: compute how many questions already answered in this session
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT id, question_text, option_a, option_b, option_c, option_d, correct_option, topic, difficulty
-            FROM question 
-            ORDER BY RANDOM() 
+        cursor.execute("SELECT COUNT(1) FROM responses WHERE session_id = ?", (session_id,))
+        answered_count_row = cursor.fetchone()
+        questions_answered = answered_count_row[0] if answered_count_row else 0
+
+        # Stop after 10 questions
+        if questions_answered >= 10:
+            conn.close()
+            return jsonify({'status': 'complete', 'message': 'Exam completed'})
+
+        # Determine target difficulty based on last response
+        # Fetch last response for this session (join to get last question difficulty)
+        cursor.execute(
+            """
+            SELECT q.difficulty, r.is_correct
+            FROM responses r
+            JOIN question q ON q.id = r.question_id
+            WHERE r.session_id = ?
+            ORDER BY r.created_at DESC, r.id DESC
             LIMIT 1
-        ''')
-        question = cursor.fetchone()
+            """,
+            (session_id,)
+        )
+        last = cursor.fetchone()
+
+        def normalize(diff: str) -> str:
+            return (diff or 'medium').strip().lower()
+
+        def harder(diff: str) -> str:
+            d = normalize(diff)
+            return 'hard' if d in ('medium', 'hard') else 'medium'
+
+        def easier(diff: str) -> str:
+            d = normalize(diff)
+            return 'easy' if d in ('medium', 'easy') else 'medium'
+
+        if last is None:
+            target_diff = 'medium'  # Start Medium when no history
+        else:
+            prev_diff, was_correct = last[0], bool(last[1])
+            target_diff = harder(prev_diff) if was_correct else easier(prev_diff)
+
+        # Collect already answered question ids for this session
+        cursor.execute("SELECT question_id FROM responses WHERE session_id = ?", (session_id,))
+        answered_ids = {row[0] for row in cursor.fetchall()}
+
+        # Try to fetch a question at target difficulty; fallback if not available
+        def pick_question_for(diff: str):
+            cursor.execute(
+                """
+                SELECT id, question_text, option_a, option_b, option_c, option_d,
+                       correct_option, topic, difficulty
+                FROM question
+                WHERE id NOT IN (SELECT question_id FROM responses WHERE session_id = ?)
+                AND LOWER(COALESCE(difficulty, 'medium')) = ?
+                ORDER BY RANDOM() LIMIT 1
+                """,
+                (session_id, diff)
+            )
+            return cursor.fetchone()
+
+        order = [target_diff]
+        if target_diff == 'hard':
+            order += ['medium', 'easy']
+        elif target_diff == 'medium':
+            order += ['hard', 'easy']
+        else:  # easy
+            order += ['medium', 'hard']
+
+        question = None
+        for d in order:
+            question = pick_question_for(d)
+            if question:
+                break
+
+        # As a last resort, pick any unseen question
+        if not question:
+            cursor.execute(
+                """
+                SELECT id, question_text, option_a, option_b, option_c, option_d,
+                       correct_option, topic, difficulty
+                FROM question
+                WHERE id NOT IN (SELECT question_id FROM responses WHERE session_id = ?)
+                ORDER BY RANDOM() LIMIT 1
+                """,
+                (session_id,)
+            )
+            question = cursor.fetchone()
+
         conn.close()
-        
-        if question:
-            return jsonify({
-                'status': 'success',
-                'question': {
-                    'id': question[0],
-                    'question_text': question[1],
-                    'option_a': question[2],
-                    'option_b': question[3],
-                    'option_c': question[4],
-                    'option_d': question[5],
-                    'difficulty': question[8] or 'Medium'
-                },
-                'session_id': session_id,
-                'questions_answered': questions_answered
-            })
-        
+
+        if not question:
+            return jsonify({'status': 'error', 'error': 'No questions available'})
+
+        formatted_question = {
+            'id': question[0],
+            'question_text': question[1],
+            'option_a': question[2],
+            'option_b': question[3],
+            'option_c': question[4],
+            'option_d': question[5],
+            'correct_answer': (question[6] or '').lower(),
+            'topic': question[7] or 'General',
+            'difficulty': question[8] or 'Medium',
+            'target_difficulty': target_diff.title(),
+            'questions_answered': questions_answered
+        }
+
+        return jsonify({'status': 'success', 'question': formatted_question, 'session_id': session_id})
+
+    except Exception as e:
+        app.logger.error(f"Error loading adaptive question: {e}")
         return jsonify({'status': 'error', 'error': 'Failed to load question'})
 
 
 @app.route('/api/adaptive/submit_response', methods=['POST'])
 def api_adaptive_submit_response():
-    """Submit adaptive response - TRUE ADAPTIVE VERSION with ability tracking"""
-    data = request.get_json()
-    if not data:
-        return jsonify({'status': 'error', 'error': 'No data provided'})
-    
-    user_id = session.get('user_id')
-    question_id = data.get('question_id')
-    selected_option = data.get('selected_option')
-    time_taken = data.get('time_taken', 5)
-    session_id = data.get('session_id')
-    
-    if not all([user_id, question_id, selected_option, session_id]):
-        return jsonify({'status': 'error', 'error': 'Missing required data'})
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Get correct answer and difficulty
-    cursor.execute('SELECT correct_option, difficulty FROM question WHERE id = ?', (question_id,))
-    result = cursor.fetchone()
-    
-    if not result:
-        conn.close()
-        return jsonify({'status': 'error', 'error': 'Question not found'})
-    
-    correct_option = result[0]
-    difficulty = result[1] or 'Medium'
-    is_correct = (selected_option.lower() == correct_option.lower())
-    
-    # Try to use adaptive engine for tracking
+    """Submit adaptive response - FINAL WORKING VERSION"""
     try:
-        from ml_models.adaptive_engine import AdaptiveTestEngine
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'error': 'No data provided'})
         
-        # ✅ Use Adaptive Engine to record response and update ability
-        engine = AdaptiveTestEngine()
-        analysis = engine.record_response(
-            student_id=user_id,
-            session_id=session_id,
-            question_id=question_id,
-            selected_option=selected_option,
-            time_taken=time_taken
-        )
+        user_id = session.get('user_id')
+        question_id = data.get('question_id')
+        selected_option = data.get('selected_option')
+        time_taken = data.get('time_taken', 5)
+        session_id = data.get('session_id')
         
-        # Get updated ability
-        responses = engine.get_student_responses(user_id, session_id)
-        updated_ability = engine.estimate_student_ability(responses)
+        if not all([user_id, question_id, selected_option, session_id]):
+            return jsonify({'status': 'error', 'error': 'Missing required data'})
         
-        conn.close()
+        conn = get_db_connection()
+        cursor = conn.cursor()
         
-        app.logger.info(f"Response recorded: User={user_id}, Q={question_id}, Correct={is_correct}, Ability={updated_ability:.2f}")
+        # Get correct answer using your schema
+        cursor.execute('SELECT correct_option FROM question WHERE id = ?', (question_id,))
+        correct_option_row = cursor.fetchone()
         
-        return jsonify({
-            'status': 'success',
-            'is_correct': is_correct,
-            'correct_answer': correct_option.lower(),
-            'difficulty': difficulty,
-            'ability_estimate': round(updated_ability, 2),
-            'total_responses': len(responses)
-        })
-        
-    except Exception as e:
-        app.logger.error(f"Adaptive tracking error, using basic validation: {e}")
-        conn.close()
-        
-        # Fallback to basic validation
-        return jsonify({
-            'status': 'success',
-            'is_correct': is_correct,
-            'correct_answer': correct_option.lower(),
-            'difficulty': difficulty
-        })
+        if not correct_option_row:
+            conn.close()
+            return jsonify({'status': 'error', 'error': 'Question not found'})
         
         is_correct = selected_option.lower() == correct_option_row[0].lower()
         
