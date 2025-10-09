@@ -1807,16 +1807,17 @@ def ensure_columns_exist():
 @app.route('/api/adaptive/next_question', methods=['POST'])
 def api_adaptive_next_question():
     """Get next adaptive question - TRUE ADAPTIVE VERSION with IRT"""
+    data = request.get_json() or {}
+    user_id = session.get('user_id')
+    session_id = data.get('session_id') or f"adaptive_{user_id}_{int(time.time())}"
+    questions_answered = data.get('questions_answered', 0)
+    
+    if questions_answered >= 10:
+        return jsonify({'status': 'complete', 'message': 'Exam completed'})
+    
+    # Try to use adaptive engine, fallback to simple selection if it fails
     try:
         from ml_models.adaptive_engine import AdaptiveTestEngine
-        
-        data = request.get_json() or {}
-        user_id = session.get('user_id')
-        session_id = data.get('session_id') or f"adaptive_{user_id}_{int(time.time())}"
-        questions_answered = data.get('questions_answered', 0)
-        
-        if questions_answered >= 10:
-            return jsonify({'status': 'complete', 'message': 'Exam completed'})
         
         # ✅ Use Adaptive Engine for TRUE adaptive testing
         engine = AdaptiveTestEngine()
@@ -1856,37 +1857,34 @@ def api_adaptive_next_question():
         })
         
     except Exception as e:
-        app.logger.error(f"Adaptive question error: {e}")
-        # Fallback to random if adaptive engine fails
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT id, question_text, option_a, option_b, option_c, option_d, correct_option, topic, difficulty
-                FROM question 
-                ORDER BY RANDOM() 
-                LIMIT 1
-            ''')
-            question = cursor.fetchone()
-            conn.close()
-            
-            if question:
-                return jsonify({
-                    'status': 'success',
-                    'question': {
-                        'id': question[0],
-                        'question_text': question[1],
-                        'option_a': question[2],
-                        'option_b': question[3],
-                        'option_c': question[4],
-                        'option_d': question[5],
-                        'difficulty': question[8] or 'Medium'
-                    },
-                    'session_id': session_id,
-                    'questions_answered': questions_answered
-                })
-        except:
-            pass
+        app.logger.error(f"Adaptive engine error, using fallback: {e}")
+        # Fallback to simple random selection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, question_text, option_a, option_b, option_c, option_d, correct_option, topic, difficulty
+            FROM question 
+            ORDER BY RANDOM() 
+            LIMIT 1
+        ''')
+        question = cursor.fetchone()
+        conn.close()
+        
+        if question:
+            return jsonify({
+                'status': 'success',
+                'question': {
+                    'id': question[0],
+                    'question_text': question[1],
+                    'option_a': question[2],
+                    'option_b': question[3],
+                    'option_c': question[4],
+                    'option_d': question[5],
+                    'difficulty': question[8] or 'Medium'
+                },
+                'session_id': session_id,
+                'questions_answered': questions_answered
+            })
         
         return jsonify({'status': 'error', 'error': 'Failed to load question'})
 
@@ -1894,36 +1892,37 @@ def api_adaptive_next_question():
 @app.route('/api/adaptive/submit_response', methods=['POST'])
 def api_adaptive_submit_response():
     """Submit adaptive response - TRUE ADAPTIVE VERSION with ability tracking"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'status': 'error', 'error': 'No data provided'})
+    
+    user_id = session.get('user_id')
+    question_id = data.get('question_id')
+    selected_option = data.get('selected_option')
+    time_taken = data.get('time_taken', 5)
+    session_id = data.get('session_id')
+    
+    if not all([user_id, question_id, selected_option, session_id]):
+        return jsonify({'status': 'error', 'error': 'Missing required data'})
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Get correct answer and difficulty
+    cursor.execute('SELECT correct_option, difficulty FROM question WHERE id = ?', (question_id,))
+    result = cursor.fetchone()
+    
+    if not result:
+        conn.close()
+        return jsonify({'status': 'error', 'error': 'Question not found'})
+    
+    correct_option = result[0]
+    difficulty = result[1] or 'Medium'
+    is_correct = (selected_option.lower() == correct_option.lower())
+    
+    # Try to use adaptive engine for tracking
     try:
         from ml_models.adaptive_engine import AdaptiveTestEngine
-        
-        data = request.get_json()
-        if not data:
-            return jsonify({'status': 'error', 'error': 'No data provided'})
-        
-        user_id = session.get('user_id')
-        question_id = data.get('question_id')
-        selected_option = data.get('selected_option')
-        time_taken = data.get('time_taken', 5)
-        session_id = data.get('session_id')
-        
-        if not all([user_id, question_id, selected_option, session_id]):
-            return jsonify({'status': 'error', 'error': 'Missing required data'})
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get correct answer and difficulty
-        cursor.execute('SELECT correct_option, difficulty FROM question WHERE id = ?', (question_id,))
-        result = cursor.fetchone()
-        
-        if not result:
-            conn.close()
-            return jsonify({'status': 'error', 'error': 'Question not found'})
-        
-        correct_option = result[0]
-        difficulty = result[1] or 'Medium'
-        is_correct = (selected_option.lower() == correct_option.lower())
         
         # ✅ Use Adaptive Engine to record response and update ability
         engine = AdaptiveTestEngine()
@@ -1953,26 +1952,16 @@ def api_adaptive_submit_response():
         })
         
     except Exception as e:
-        app.logger.error(f"Error submitting adaptive response: {e}")
-        # Fallback to basic validation
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute('SELECT correct_option FROM question WHERE id = ?', (data.get('question_id'),))
-            correct_option_row = cursor.fetchone()
-            conn.close()
-            
-            if correct_option_row:
-                is_correct = (data.get('selected_option', '').lower() == correct_option_row[0].lower())
-                return jsonify({
-                    'status': 'success',
-                    'is_correct': is_correct,
-                    'correct_answer': correct_option_row[0].lower()
-                })
-        except:
-            pass
+        app.logger.error(f"Adaptive tracking error, using basic validation: {e}")
+        conn.close()
         
-        return jsonify({'status': 'error', 'error': 'Failed to submit response'})
+        # Fallback to basic validation
+        return jsonify({
+            'status': 'success',
+            'is_correct': is_correct,
+            'correct_answer': correct_option.lower(),
+            'difficulty': difficulty
+        })
         
         is_correct = selected_option.lower() == correct_option_row[0].lower()
         
