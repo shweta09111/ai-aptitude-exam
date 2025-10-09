@@ -11,7 +11,10 @@ def setup_adaptive_tables():
     conn = sqlite3.connect('aptitude_exam.db')
     cursor = conn.cursor()
     
-    # Create adaptive_responses table
+    # Drop existing table if it has wrong schema
+    cursor.execute("DROP TABLE IF EXISTS adaptive_responses")
+    
+    # Create adaptive_responses table (NO foreign keys to avoid conflicts)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS adaptive_responses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,9 +25,7 @@ def setup_adaptive_tables():
         difficulty_level INTEGER,
         correct BOOLEAN NOT NULL,
         time_taken INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES users(id),
-        FOREIGN KEY (question_id) REFERENCES question(id)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
     
@@ -39,15 +40,14 @@ def setup_adaptive_tables():
     ON adaptive_responses(student_id, created_at)
     """)
     
-    # Create question_calibration table (for advanced IRT)
+    # Create question_calibration table (for advanced IRT) - NO foreign key
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS question_calibration (
         question_id INTEGER PRIMARY KEY,
         observed_difficulty REAL,
         discrimination REAL DEFAULT 1.0,
         sample_size INTEGER DEFAULT 0,
-        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (question_id) REFERENCES question(id)
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
     
