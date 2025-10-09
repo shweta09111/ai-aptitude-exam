@@ -67,16 +67,6 @@ app = create_app()
 # CSRF protection disabled for simplified authentication
 # csrf = CSRFProtect(app)
 
-# Add cache-busting headers for templates and static files
-@app.after_request
-def add_header(response):
-    """Add headers to prevent caching of templates and CSS"""
-    if request.path.startswith('/admin') or request.path.endswith('.html') or request.path.endswith('.css'):
-        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '-1'
-    return response
-
 # Simple user context - NO TOKENS
 @app.context_processor
 def inject_current_user():
@@ -554,7 +544,7 @@ def students_only(f):
 def get_counts():
     conn = get_db_connection()
     total_questions = conn.execute('SELECT COUNT(*) FROM question').fetchone()[0]
-    students = conn.execute("SELECT COUNT(*) FROM users WHERE role='student'").fetchone()[0]
+    students = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin=0').fetchone()[0]
     all_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
     ab_participants = conn.execute('SELECT COUNT(DISTINCT user_id) FROM ab_test_assignments').fetchone()[0]
     total_exams = conn.execute('SELECT COUNT(*) FROM results').fetchone()[0]
@@ -581,91 +571,55 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Generic login - redirects to role-specific page"""
-    return redirect(url_for('student_login'))
-
-@app.route('/login/student', methods=['GET', 'POST'])
-def student_login():
-    """Student login - validates user is NOT admin"""
-    if request.method == 'POST':
-        username = request.form['username'].strip()  # Trim whitespace
-        password = request.form['password']
-        
-        conn = get_db_connection()
-        user = conn.execute('''
-            SELECT id, username, password_hash, role
-            FROM users WHERE TRIM(username) = ?
-        ''', (username,)).fetchone()
-
-        conn.close()
-        
-        if user and check_password_hash(user['password_hash'], password):
-            # Check if user is trying to login as admin through student portal
-            if user['role'] == 'admin':
-                flash('Admin accounts cannot login here. Please use Admin Login.', 'danger')
-                return render_template('login.html', login_type='student')
-            
-            # Clear any existing session
-            session.clear()
-            
-            # Set simple session variables - NO TOKENS
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['is_admin'] = False
-            session['logged_in'] = True
-            
-            app.logger.info(f"Student logged in: {username}")
-            flash(f'Welcome {user["username"]}!', 'success')
-            return redirect(url_for('student_dashboard'))
-        else:
-            flash('Invalid username or password', 'danger')
-    
-    return render_template('login.html', login_type='student')
-
-@app.route('/login/admin', methods=['GET', 'POST'])
-def admin_login():
-    """Admin login - validates user IS admin"""
-    if request.method == 'POST':
-        username = request.form['username'].strip()  # Trim whitespace
-        password = request.form['password']
-        
-        conn = get_db_connection()
-        user = conn.execute('''
-            SELECT id, username, password_hash, role
-            FROM users WHERE TRIM(username) = ?
-        ''', (username,)).fetchone()
-
-        conn.close()
-        
-        if user and check_password_hash(user['password_hash'], password):
-            # Check if user is NOT admin
-            if user['role'] != 'admin':
-                flash('This account is not an admin. Please use Student Login.', 'danger')
-                return render_template('login.html', login_type='admin')
-            
-            # Clear any existing session
-            session.clear()
-            
-            # Set simple session variables - NO TOKENS
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['is_admin'] = True
-            session['logged_in'] = True
-            
-            app.logger.info(f"Admin logged in: {username}")
-            flash(f'Welcome Admin {user["username"]}!', 'success')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Invalid admin credentials', 'danger')
-    
-    return render_template('login.html', login_type='admin')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    """User registration - creates student account"""
+    """User login - SIMPLE SESSION VERSION (NO TOKENS)"""
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        
+        conn = get_db_connection()
+        user = conn.execute('''
+            SELECT id, username, email, 
+                   password_hash, 
+                   full_name, 
+                   is_admin 
+            FROM users WHERE username = ?
+        ''', (username,)).fetchone()
+
+        conn.close()
+        
+        if user and check_password_hash(user['password_hash'], password):
+            # Clear any existing session
+            session.clear()
+            
+            # Set simple session variables - NO TOKENS
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['full_name'] = user['full_name']
+            session['email'] = user['email']
+            session['is_admin'] = bool(user['is_admin'])
+            session['logged_in'] = True
+            
+            app.logger.info(f"User logged in: {username} (Admin: {bool(user['is_admin'])})")
+            
+            if user['is_admin']:
+                flash(f'Welcome Admin {user["full_name"]}!', 'success')
+                return redirect(url_for('admin_dashboard'))
+            else:
+                flash(f'Welcome {user["full_name"]}!', 'success')
+                return redirect(url_for('student_dashboard'))
+        else:
+            flash('Invalid username or password', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """User registration - NO TOKENS"""
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        full_name = request.form.get('full_name', username)  # Use username if full_name is empty
         
         # Basic validation
         if len(username) < 3:
@@ -679,21 +633,21 @@ def register():
         # Check if user exists
         conn = get_db_connection()
         existing_user = conn.execute(
-            'SELECT id FROM users WHERE username = ?',
-            (username,)
+            'SELECT id FROM users WHERE username = ? OR email = ?',
+            (username, email)
         ).fetchone()
         
         if existing_user:
-            flash('Username already exists', 'danger')
+            flash('Username or email already exists', 'danger')
             conn.close()
             return render_template('register.html')
         
-        # Create new user (always student role)
+        # Create new user
         password_hash = generate_password_hash(password)
         try:
             conn.execute(
-                'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-                (username, password_hash, 'student')
+                'INSERT INTO users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
+                (username, email, password_hash, full_name if full_name else username)
             )
             conn.commit()
             app.logger.info(f"New user registered: {username}")
@@ -738,8 +692,8 @@ def admin_dashboard():
         # FIXED: Get accurate counts
         total_questions = conn.execute('SELECT COUNT(*) FROM question').fetchone()[0]
         
-        # FIXED: Count only students (role = 'student')
-        total_students = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'student'").fetchone()[0]
+        # FIXED: Count only non-admin users (students)
+        total_students = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin = 0 OR is_admin IS NULL').fetchone()[0]
         
         # FIXED: Count completed exams properly
         regular_exams = conn.execute('''
@@ -781,200 +735,6 @@ def admin_dashboard():
                              regular_exams=0,
                              adaptive_sessions=0,
                              avg_performance=0)
-
-# =================================
-# USER MANAGEMENT ROUTES (ADMIN ONLY)
-# =================================
-
-@app.route('/admin/users')
-@admin_required
-def admin_manage_users():
-    """List all users for management with pagination"""
-    try:
-        # Get page number from query string, default to 1
-        page = request.args.get('page', 1, type=int)
-        per_page = 15  # Show 15 users per page
-        
-        conn = get_db_connection()
-        
-        # Count total users
-        total_count = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
-        admin_count = conn.execute("SELECT COUNT(*) as count FROM users WHERE role='admin'").fetchone()['count']
-        student_count = total_count - admin_count
-        
-        # Calculate pagination
-        total_pages = (total_count + per_page - 1) // per_page  # Ceiling division
-        offset = (page - 1) * per_page
-        
-        # Get users for current page
-        users = conn.execute('''
-            SELECT id, username, role
-            FROM users
-            ORDER BY role ASC, id ASC
-            LIMIT ? OFFSET ?
-        ''', (per_page, offset)).fetchall()
-        
-        conn.close()
-        
-        # Calculate starting row number for this page
-        start_row = offset + 1
-        
-        return render_template('admin_users.html', 
-                             users=users,
-                             admin_count=admin_count,
-                             student_count=student_count,
-                             total_count=total_count,
-                             page=page,
-                             total_pages=total_pages,
-                             per_page=per_page,
-                             start_row=start_row)
-    except Exception as e:
-        app.logger.error(f"Manage users error: {e}")
-        flash('Error loading users', 'danger')
-        return redirect(url_for('admin_dashboard'))
-
-@app.route('/admin/users/add', methods=['GET', 'POST'])
-@admin_required
-def admin_add_user():
-    """Add new user (student or admin)"""
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        is_admin = request.form.get('is_admin') == '1'
-        
-        # Validation
-        if not username or not password:
-            flash('Username and password are required!', 'danger')
-            return redirect(url_for('admin_add_user'))
-        
-        if len(password) < 6:
-            flash('Password must be at least 6 characters!', 'danger')
-            return redirect(url_for('admin_add_user'))
-        
-        try:
-            conn = get_db_connection()
-            
-            # Check if username exists
-            existing = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
-            if existing:
-                flash(f'Username "{username}" already exists!', 'danger')
-                conn.close()
-                return redirect(url_for('admin_add_user'))
-            
-            # Create user
-            password_hash = generate_password_hash(password)
-            role = 'admin' if is_admin else 'student'
-            
-            conn.execute('''
-                INSERT INTO users (username, password_hash, role)
-                VALUES (?, ?, ?)
-            ''', (username, password_hash, role))
-            conn.commit()
-            conn.close()
-            
-            user_type = 'Admin' if is_admin else 'Student'
-            flash(f'{user_type} "{username}" created successfully!', 'success')
-            return redirect(url_for('admin_manage_users'))
-            
-        except Exception as e:
-            app.logger.error(f"Add user error: {e}")
-            flash('Error creating user', 'danger')
-            return redirect(url_for('admin_add_user'))
-    
-    return render_template('admin_add_user.html')
-
-@app.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
-@admin_required
-def admin_edit_user(user_id):
-    """Edit user details or change password"""
-    conn = get_db_connection()
-    
-    if request.method == 'POST':
-        action = request.form.get('action')
-        
-        if action == 'edit_info':
-            is_admin = request.form.get('is_admin') == '1'
-            role = 'admin' if is_admin else 'student'
-            
-            try:
-                conn.execute('''
-                    UPDATE users 
-                    SET role = ?
-                    WHERE id = ?
-                ''', (role, user_id))
-                conn.commit()
-                flash('User role updated successfully!', 'success')
-            except Exception as e:
-                app.logger.error(f"Update user error: {e}")
-                flash('Error updating user', 'danger')
-        
-        elif action == 'change_password':
-            new_password = request.form.get('new_password', '').strip()
-            confirm_password = request.form.get('confirm_password', '').strip()
-            
-            if new_password != confirm_password:
-                flash('Passwords do not match!', 'danger')
-            elif len(new_password) < 6:
-                flash('Password must be at least 6 characters!', 'danger')
-            else:
-                try:
-                    password_hash = generate_password_hash(new_password)
-                    conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', 
-                               (password_hash, user_id))
-                    conn.commit()
-                    flash('Password changed successfully!', 'success')
-                except Exception as e:
-                    app.logger.error(f"Change password error: {e}")
-                    flash('Error changing password', 'danger')
-        
-        conn.close()
-        return redirect(url_for('admin_edit_user', user_id=user_id))
-    
-    # GET request - show edit form
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    conn.close()
-    
-    if not user:
-        flash('User not found', 'danger')
-        return redirect(url_for('admin_manage_users'))
-    
-    return render_template('admin_edit_user.html', user=user)
-
-@app.route('/admin/users/delete/<int:user_id>')
-@admin_required
-def admin_delete_user(user_id):
-    """Delete a user"""
-    try:
-        conn = get_db_connection()
-        
-        # Prevent deleting current admin
-        current_user_id = session.get('user_id')
-        if user_id == current_user_id:
-            flash('Cannot delete your own account!', 'danger')
-            conn.close()
-            return redirect(url_for('admin_manage_users'))
-        
-        # Get username before deleting
-        user = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-        
-        if not user:
-            flash('User not found', 'danger')
-        else:
-            # Delete user's results first (foreign key)
-            conn.execute('DELETE FROM results WHERE user_id = ?', (user_id,))
-            conn.execute('DELETE FROM adaptiveresponses WHERE user_id = ?', (user_id,))
-            
-            # Delete user
-            conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
-            conn.commit()
-            flash(f'User "{user["username"]}" deleted successfully!', 'success')
-        
-        conn.close()
-    except Exception as e:
-        app.logger.error(f"Delete user error: {e}")
-        flash('Error deleting user', 'danger')
-    
-    return redirect(url_for('admin_manage_users'))
 
 
 @app.route('/student/dashboard')
@@ -1221,24 +981,6 @@ def admin_scrape_page():
     """Admin scraper dashboard - NO TOKENS"""
     return render_template('admin_scrape.html')
 
-@app.route('/admin/ml_status')
-@admin_required
-def ml_status():
-    """ML Status page showing machine learning system status"""
-    try:
-        # You can add actual ML system checks here
-        status = {
-            'ml_engine': 'Active',
-            'adaptive_algorithm': 'Processing',
-            'training_data': 'Ready',
-            'message': 'Machine Learning engine is operational and ready for adaptive testing.'
-        }
-        return render_template('ml_status.html', status=status)
-    except Exception as e:
-        app.logger.error(f"ML Status error: {e}")
-        flash('Error loading ML status', 'danger')
-        return redirect(url_for('admin_dashboard'))
-
 import math
 from datetime import datetime, timedelta
 from flask import request, render_template
@@ -1257,7 +999,7 @@ def admin_reports():
 
         # System overview counts
         total_questions = conn.execute('SELECT COUNT(*) FROM question').fetchone()[0]
-        total_users = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'student'").fetchone()[0]
+        total_users = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin = 0').fetchone()[0]
         # Completed exams = all regular results
         total_exams = conn.execute("SELECT COUNT(*) FROM results WHERE sessiontype = 'regular'").fetchone()[0]
         # Adaptive responses
@@ -1308,7 +1050,7 @@ def admin_reports():
         rows = conn.execute('''
             SELECT u.username, COUNT(r.id) AS total_exams, AVG(r.percentage) AS avg_score, MAX(r.percentage) AS best_score
             FROM users u JOIN results r ON u.id=r.user_id
-            WHERE u.role='student'
+            WHERE u.is_admin=0
             GROUP BY u.id
             ORDER BY avg_score DESC
             LIMIT 5
@@ -1621,7 +1363,7 @@ def api_get_questions():
 @app.route('/api/submit_exam', methods=['POST'])
 @login_required
 def api_submit_exam():
-    """Fixed: Handle both 'answers' and 'responses' formats"""
+    """MINIMAL FIX: Only fix total_questions issue"""
     try:
         data = request.get_json()
         user_id = session.get('user_id')
@@ -1629,47 +1371,25 @@ def api_submit_exam():
         if not data or not user_id:
             return jsonify({'success': False, 'error': 'Invalid request'})
         
-        # ✅ FIX: Accept both 'responses' (new format) and 'answers' (old format)
-        responses = data.get('responses', [])
-        answers_dict = data.get('answers', {})
-        
+        answers = data.get('answers', {})
         time_taken = data.get('time_taken', 0) or data.get('totalTime', 0)
         session_id = data.get('session_id', f"regular_{user_id}_{int(time.time())}")
+        
+        # ✅ FIX: Ensure total_questions is correctly calculated
+        total_questions = len(answers) if answers else 10  # Default to 10
         
         # Calculate correct answers
         conn = get_db_connection()
         correct_count = 0
-        total_questions = 0
         
-        # ✅ Handle array format (responses: [{question_id, selected_option, is_correct}])
-        if responses and isinstance(responses, list):
-            total_questions = len(responses)
-            for response in responses:
-                question_id = response.get('question_id')
-                user_answer = response.get('selected_option')
-                
-                question = conn.execute(
-                    'SELECT correct_option FROM question WHERE id = ?', 
-                    (question_id,)
-                ).fetchone()
-                
-                if question and question['correct_option'].lower() == str(user_answer).lower():
-                    correct_count += 1
-        
-        # ✅ Handle dict format (answers: {question_id: answer})
-        elif answers_dict:
-            total_questions = len(answers_dict)
-            for question_id, user_answer in answers_dict.items():
-                question = conn.execute(
-                    'SELECT correct_option FROM question WHERE id = ?', 
-                    (question_id,)
-                ).fetchone()
-                
-                if question and question['correct_option'].lower() == str(user_answer).lower():
-                    correct_count += 1
-        
-        else:
-            total_questions = 10  # Default fallback
+        for question_id, user_answer in answers.items():
+            question = conn.execute(
+                'SELECT correct_option FROM question WHERE id = ?', 
+                (question_id,)
+            ).fetchone()
+            
+            if question and question['correct_option'].lower() == str(user_answer).lower():
+                correct_count += 1
         
         conn.close()
         
@@ -2086,8 +1806,10 @@ def ensure_columns_exist():
 
 @app.route('/api/adaptive/next_question', methods=['POST'])
 def api_adaptive_next_question():
-    """Get next adaptive question - FINAL WORKING VERSION"""
+    """Get next adaptive question - TRUE ADAPTIVE VERSION with IRT"""
     try:
+        from ml_models.adaptive_engine import AdaptiveTestEngine
+        
         data = request.get_json() or {}
         user_id = session.get('user_id')
         session_id = data.get('session_id') or f"adaptive_{user_id}_{int(time.time())}"
@@ -2096,52 +1818,85 @@ def api_adaptive_next_question():
         if questions_answered >= 10:
             return jsonify({'status': 'complete', 'message': 'Exam completed'})
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Just get any random question - simplified approach
-        cursor.execute('''
-            SELECT id, question_text, option_a, option_b, option_c, option_d, correct_option, topic, difficulty
-            FROM question 
-            ORDER BY RANDOM() 
-            LIMIT 1
-        ''')
-        
-        question = cursor.fetchone()
-        conn.close()
+        # ✅ Use Adaptive Engine for TRUE adaptive testing
+        engine = AdaptiveTestEngine()
+        question = engine.select_next_question(
+            student_id=user_id,
+            session_id=session_id,
+            exclude_topics=[]
+        )
         
         if not question:
-            return jsonify({'status': 'error', 'error': 'No questions available'})
+            return jsonify({'status': 'complete', 'message': 'No more questions available'})
         
-        # Format question using your schema
+        # Get ability estimate for tracking
+        responses = engine.get_student_responses(user_id, session_id)
+        current_ability = engine.estimate_student_ability(responses)
+        
+        # Format question for frontend
         formatted_question = {
-            'id': question[0],
-            'question_text': question[1],
-            'option_a': question[2],
-            'option_b': question[3],
-            'option_c': question[4],
-            'option_d': question[5],
-            'correct_answer': question[6].lower(),
-            'topic': question[7] or 'General',
-            'difficulty': question[8] or 'Medium'
+            'id': question['id'],
+            'question_text': question['question_text'],
+            'option_a': question['option_a'],
+            'option_b': question['option_b'],
+            'option_c': question['option_c'],
+            'option_d': question['option_d'],
+            'difficulty': question.get('difficulty', 'Medium')
         }
+        
+        app.logger.info(f"Adaptive question selected: ID={question['id']}, Difficulty={question.get('difficulty')}, Ability={current_ability:.2f}")
         
         return jsonify({
             'status': 'success',
             'question': formatted_question,
             'session_id': session_id,
-            'questions_answered': questions_answered
+            'questions_answered': questions_answered,
+            'student_ability': round(current_ability, 2),
+            'target_difficulty': question.get('difficulty', 'Medium')
         })
         
     except Exception as e:
-        app.logger.error(f"Error loading adaptive question: {e}")
+        app.logger.error(f"Adaptive question error: {e}")
+        # Fallback to random if adaptive engine fails
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, question_text, option_a, option_b, option_c, option_d, correct_option, topic, difficulty
+                FROM question 
+                ORDER BY RANDOM() 
+                LIMIT 1
+            ''')
+            question = cursor.fetchone()
+            conn.close()
+            
+            if question:
+                return jsonify({
+                    'status': 'success',
+                    'question': {
+                        'id': question[0],
+                        'question_text': question[1],
+                        'option_a': question[2],
+                        'option_b': question[3],
+                        'option_c': question[4],
+                        'option_d': question[5],
+                        'difficulty': question[8] or 'Medium'
+                    },
+                    'session_id': session_id,
+                    'questions_answered': questions_answered
+                })
+        except:
+            pass
+        
         return jsonify({'status': 'error', 'error': 'Failed to load question'})
 
 
 @app.route('/api/adaptive/submit_response', methods=['POST'])
 def api_adaptive_submit_response():
-    """Submit adaptive response - FINAL WORKING VERSION"""
+    """Submit adaptive response - TRUE ADAPTIVE VERSION with ability tracking"""
     try:
+        from ml_models.adaptive_engine import AdaptiveTestEngine
+        
         data = request.get_json()
         if not data:
             return jsonify({'status': 'error', 'error': 'No data provided'})
@@ -2158,13 +1913,66 @@ def api_adaptive_submit_response():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Get correct answer using your schema
-        cursor.execute('SELECT correct_option FROM question WHERE id = ?', (question_id,))
-        correct_option_row = cursor.fetchone()
+        # Get correct answer and difficulty
+        cursor.execute('SELECT correct_option, difficulty FROM question WHERE id = ?', (question_id,))
+        result = cursor.fetchone()
         
-        if not correct_option_row:
+        if not result:
             conn.close()
             return jsonify({'status': 'error', 'error': 'Question not found'})
+        
+        correct_option = result[0]
+        difficulty = result[1] or 'Medium'
+        is_correct = (selected_option.lower() == correct_option.lower())
+        
+        # ✅ Use Adaptive Engine to record response and update ability
+        engine = AdaptiveTestEngine()
+        analysis = engine.record_response(
+            student_id=user_id,
+            session_id=session_id,
+            question_id=question_id,
+            selected_option=selected_option,
+            time_taken=time_taken
+        )
+        
+        # Get updated ability
+        responses = engine.get_student_responses(user_id, session_id)
+        updated_ability = engine.estimate_student_ability(responses)
+        
+        conn.close()
+        
+        app.logger.info(f"Response recorded: User={user_id}, Q={question_id}, Correct={is_correct}, Ability={updated_ability:.2f}")
+        
+        return jsonify({
+            'status': 'success',
+            'is_correct': is_correct,
+            'correct_answer': correct_option.lower(),
+            'difficulty': difficulty,
+            'ability_estimate': round(updated_ability, 2),
+            'total_responses': len(responses)
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error submitting adaptive response: {e}")
+        # Fallback to basic validation
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT correct_option FROM question WHERE id = ?', (data.get('question_id'),))
+            correct_option_row = cursor.fetchone()
+            conn.close()
+            
+            if correct_option_row:
+                is_correct = (data.get('selected_option', '').lower() == correct_option_row[0].lower())
+                return jsonify({
+                    'status': 'success',
+                    'is_correct': is_correct,
+                    'correct_answer': correct_option_row[0].lower()
+                })
+        except:
+            pass
+        
+        return jsonify({'status': 'error', 'error': 'Failed to submit response'})
         
         is_correct = selected_option.lower() == correct_option_row[0].lower()
         
