@@ -67,6 +67,16 @@ app = create_app()
 # CSRF protection disabled for simplified authentication
 # csrf = CSRFProtect(app)
 
+# Add cache-busting headers for templates and static files
+@app.after_request
+def add_header(response):
+    """Add headers to prevent caching of templates and CSS"""
+    if request.path.startswith('/admin') or request.path.endswith('.html') or request.path.endswith('.css'):
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '-1'
+    return response
+
 # Simple user context - NO TOKENS
 @app.context_processor
 def inject_current_user():
@@ -544,7 +554,7 @@ def students_only(f):
 def get_counts():
     conn = get_db_connection()
     total_questions = conn.execute('SELECT COUNT(*) FROM question').fetchone()[0]
-    students = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin=0').fetchone()[0]
+    students = conn.execute("SELECT COUNT(*) FROM users WHERE role='student'").fetchone()[0]
     all_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
     ab_participants = conn.execute('SELECT COUNT(DISTINCT user_id) FROM ab_test_assignments').fetchone()[0]
     total_exams = conn.execute('SELECT COUNT(*) FROM results').fetchone()[0]
@@ -578,23 +588,20 @@ def login():
 def student_login():
     """Student login - validates user is NOT admin"""
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()  # Trim whitespace
         password = request.form['password']
         
         conn = get_db_connection()
         user = conn.execute('''
-            SELECT id, username, email, 
-                   password_hash, 
-                   full_name, 
-                   is_admin 
-            FROM users WHERE username = ?
+            SELECT id, username, password_hash, role
+            FROM users WHERE TRIM(username) = ?
         ''', (username,)).fetchone()
 
         conn.close()
         
         if user and check_password_hash(user['password_hash'], password):
             # Check if user is trying to login as admin through student portal
-            if user['is_admin']:
+            if user['role'] == 'admin':
                 flash('Admin accounts cannot login here. Please use Admin Login.', 'danger')
                 return render_template('login.html', login_type='student')
             
@@ -604,13 +611,11 @@ def student_login():
             # Set simple session variables - NO TOKENS
             session['user_id'] = user['id']
             session['username'] = user['username']
-            session['full_name'] = user['full_name']
-            session['email'] = user['email']
             session['is_admin'] = False
             session['logged_in'] = True
             
             app.logger.info(f"Student logged in: {username}")
-            flash(f'Welcome {user["full_name"]}!', 'success')
+            flash(f'Welcome {user["username"]}!', 'success')
             return redirect(url_for('student_dashboard'))
         else:
             flash('Invalid username or password', 'danger')
@@ -621,23 +626,20 @@ def student_login():
 def admin_login():
     """Admin login - validates user IS admin"""
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()  # Trim whitespace
         password = request.form['password']
         
         conn = get_db_connection()
         user = conn.execute('''
-            SELECT id, username, email, 
-                   password_hash, 
-                   full_name, 
-                   is_admin 
-            FROM users WHERE username = ?
+            SELECT id, username, password_hash, role
+            FROM users WHERE TRIM(username) = ?
         ''', (username,)).fetchone()
 
         conn.close()
         
         if user and check_password_hash(user['password_hash'], password):
             # Check if user is NOT admin
-            if not user['is_admin']:
+            if user['role'] != 'admin':
                 flash('This account is not an admin. Please use Student Login.', 'danger')
                 return render_template('login.html', login_type='admin')
             
@@ -647,13 +649,11 @@ def admin_login():
             # Set simple session variables - NO TOKENS
             session['user_id'] = user['id']
             session['username'] = user['username']
-            session['full_name'] = user['full_name']
-            session['email'] = user['email']
             session['is_admin'] = True
             session['logged_in'] = True
             
             app.logger.info(f"Admin logged in: {username}")
-            flash(f'Welcome Admin {user["full_name"]}!', 'success')
+            flash(f'Welcome Admin {user["username"]}!', 'success')
             return redirect(url_for('admin_dashboard'))
         else:
             flash('Invalid admin credentials', 'danger')
@@ -662,12 +662,10 @@ def admin_login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration - NO TOKENS"""
+    """User registration - creates student account"""
     if request.method == 'POST':
         username = request.form['username']
-        email = request.form['email']
         password = request.form['password']
-        full_name = request.form.get('full_name', username)  # Use username if full_name is empty
         
         # Basic validation
         if len(username) < 3:
@@ -681,21 +679,21 @@ def register():
         # Check if user exists
         conn = get_db_connection()
         existing_user = conn.execute(
-            'SELECT id FROM users WHERE username = ? OR email = ?',
-            (username, email)
+            'SELECT id FROM users WHERE username = ?',
+            (username,)
         ).fetchone()
         
         if existing_user:
-            flash('Username or email already exists', 'danger')
+            flash('Username already exists', 'danger')
             conn.close()
             return render_template('register.html')
         
-        # Create new user
+        # Create new user (always student role)
         password_hash = generate_password_hash(password)
         try:
             conn.execute(
-                'INSERT INTO users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
-                (username, email, password_hash, full_name if full_name else username)
+                'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+                (username, password_hash, 'student')
             )
             conn.commit()
             app.logger.info(f"New user registered: {username}")
@@ -740,8 +738,8 @@ def admin_dashboard():
         # FIXED: Get accurate counts
         total_questions = conn.execute('SELECT COUNT(*) FROM question').fetchone()[0]
         
-        # FIXED: Count only non-admin users (students)
-        total_students = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin = 0 OR is_admin IS NULL').fetchone()[0]
+        # FIXED: Count only students (role = 'student')
+        total_students = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'student'").fetchone()[0]
         
         # FIXED: Count completed exams properly
         regular_exams = conn.execute('''
@@ -783,6 +781,200 @@ def admin_dashboard():
                              regular_exams=0,
                              adaptive_sessions=0,
                              avg_performance=0)
+
+# =================================
+# USER MANAGEMENT ROUTES (ADMIN ONLY)
+# =================================
+
+@app.route('/admin/users')
+@admin_required
+def admin_manage_users():
+    """List all users for management with pagination"""
+    try:
+        # Get page number from query string, default to 1
+        page = request.args.get('page', 1, type=int)
+        per_page = 15  # Show 15 users per page
+        
+        conn = get_db_connection()
+        
+        # Count total users
+        total_count = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
+        admin_count = conn.execute("SELECT COUNT(*) as count FROM users WHERE role='admin'").fetchone()['count']
+        student_count = total_count - admin_count
+        
+        # Calculate pagination
+        total_pages = (total_count + per_page - 1) // per_page  # Ceiling division
+        offset = (page - 1) * per_page
+        
+        # Get users for current page
+        users = conn.execute('''
+            SELECT id, username, role
+            FROM users
+            ORDER BY role ASC, id ASC
+            LIMIT ? OFFSET ?
+        ''', (per_page, offset)).fetchall()
+        
+        conn.close()
+        
+        # Calculate starting row number for this page
+        start_row = offset + 1
+        
+        return render_template('admin_users.html', 
+                             users=users,
+                             admin_count=admin_count,
+                             student_count=student_count,
+                             total_count=total_count,
+                             page=page,
+                             total_pages=total_pages,
+                             per_page=per_page,
+                             start_row=start_row)
+    except Exception as e:
+        app.logger.error(f"Manage users error: {e}")
+        flash('Error loading users', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/users/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_user():
+    """Add new user (student or admin)"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        is_admin = request.form.get('is_admin') == '1'
+        
+        # Validation
+        if not username or not password:
+            flash('Username and password are required!', 'danger')
+            return redirect(url_for('admin_add_user'))
+        
+        if len(password) < 6:
+            flash('Password must be at least 6 characters!', 'danger')
+            return redirect(url_for('admin_add_user'))
+        
+        try:
+            conn = get_db_connection()
+            
+            # Check if username exists
+            existing = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+            if existing:
+                flash(f'Username "{username}" already exists!', 'danger')
+                conn.close()
+                return redirect(url_for('admin_add_user'))
+            
+            # Create user
+            password_hash = generate_password_hash(password)
+            role = 'admin' if is_admin else 'student'
+            
+            conn.execute('''
+                INSERT INTO users (username, password_hash, role)
+                VALUES (?, ?, ?)
+            ''', (username, password_hash, role))
+            conn.commit()
+            conn.close()
+            
+            user_type = 'Admin' if is_admin else 'Student'
+            flash(f'{user_type} "{username}" created successfully!', 'success')
+            return redirect(url_for('admin_manage_users'))
+            
+        except Exception as e:
+            app.logger.error(f"Add user error: {e}")
+            flash('Error creating user', 'danger')
+            return redirect(url_for('admin_add_user'))
+    
+    return render_template('admin_add_user.html')
+
+@app.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_user(user_id):
+    """Edit user details or change password"""
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'edit_info':
+            is_admin = request.form.get('is_admin') == '1'
+            role = 'admin' if is_admin else 'student'
+            
+            try:
+                conn.execute('''
+                    UPDATE users 
+                    SET role = ?
+                    WHERE id = ?
+                ''', (role, user_id))
+                conn.commit()
+                flash('User role updated successfully!', 'success')
+            except Exception as e:
+                app.logger.error(f"Update user error: {e}")
+                flash('Error updating user', 'danger')
+        
+        elif action == 'change_password':
+            new_password = request.form.get('new_password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            
+            if new_password != confirm_password:
+                flash('Passwords do not match!', 'danger')
+            elif len(new_password) < 6:
+                flash('Password must be at least 6 characters!', 'danger')
+            else:
+                try:
+                    password_hash = generate_password_hash(new_password)
+                    conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', 
+                               (password_hash, user_id))
+                    conn.commit()
+                    flash('Password changed successfully!', 'success')
+                except Exception as e:
+                    app.logger.error(f"Change password error: {e}")
+                    flash('Error changing password', 'danger')
+        
+        conn.close()
+        return redirect(url_for('admin_edit_user', user_id=user_id))
+    
+    # GET request - show edit form
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    conn.close()
+    
+    if not user:
+        flash('User not found', 'danger')
+        return redirect(url_for('admin_manage_users'))
+    
+    return render_template('admin_edit_user.html', user=user)
+
+@app.route('/admin/users/delete/<int:user_id>')
+@admin_required
+def admin_delete_user(user_id):
+    """Delete a user"""
+    try:
+        conn = get_db_connection()
+        
+        # Prevent deleting current admin
+        current_user_id = session.get('user_id')
+        if user_id == current_user_id:
+            flash('Cannot delete your own account!', 'danger')
+            conn.close()
+            return redirect(url_for('admin_manage_users'))
+        
+        # Get username before deleting
+        user = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+        
+        if not user:
+            flash('User not found', 'danger')
+        else:
+            # Delete user's results first (foreign key)
+            conn.execute('DELETE FROM results WHERE user_id = ?', (user_id,))
+            conn.execute('DELETE FROM adaptiveresponses WHERE user_id = ?', (user_id,))
+            
+            # Delete user
+            conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+            conn.commit()
+            flash(f'User "{user["username"]}" deleted successfully!', 'success')
+        
+        conn.close()
+    except Exception as e:
+        app.logger.error(f"Delete user error: {e}")
+        flash('Error deleting user', 'danger')
+    
+    return redirect(url_for('admin_manage_users'))
 
 
 @app.route('/student/dashboard')
@@ -1029,6 +1221,24 @@ def admin_scrape_page():
     """Admin scraper dashboard - NO TOKENS"""
     return render_template('admin_scrape.html')
 
+@app.route('/admin/ml_status')
+@admin_required
+def ml_status():
+    """ML Status page showing machine learning system status"""
+    try:
+        # You can add actual ML system checks here
+        status = {
+            'ml_engine': 'Active',
+            'adaptive_algorithm': 'Processing',
+            'training_data': 'Ready',
+            'message': 'Machine Learning engine is operational and ready for adaptive testing.'
+        }
+        return render_template('ml_status.html', status=status)
+    except Exception as e:
+        app.logger.error(f"ML Status error: {e}")
+        flash('Error loading ML status', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
 import math
 from datetime import datetime, timedelta
 from flask import request, render_template
@@ -1047,7 +1257,7 @@ def admin_reports():
 
         # System overview counts
         total_questions = conn.execute('SELECT COUNT(*) FROM question').fetchone()[0]
-        total_users = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin = 0').fetchone()[0]
+        total_users = conn.execute("SELECT COUNT(*) FROM users WHERE role = 'student'").fetchone()[0]
         # Completed exams = all regular results
         total_exams = conn.execute("SELECT COUNT(*) FROM results WHERE sessiontype = 'regular'").fetchone()[0]
         # Adaptive responses
@@ -1098,7 +1308,7 @@ def admin_reports():
         rows = conn.execute('''
             SELECT u.username, COUNT(r.id) AS total_exams, AVG(r.percentage) AS avg_score, MAX(r.percentage) AS best_score
             FROM users u JOIN results r ON u.id=r.user_id
-            WHERE u.is_admin=0
+            WHERE u.role='student'
             GROUP BY u.id
             ORDER BY avg_score DESC
             LIMIT 5

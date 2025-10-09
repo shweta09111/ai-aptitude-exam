@@ -324,7 +324,7 @@ TokenFreeRealtimeDashboard.prototype.showRealActivity = function(activity) {
     var now = new Date().toLocaleTimeString();
     
     feed.innerHTML = '<div class="activity-item active">' +
-        '<i class="fas fa-chart-line text-success activity-icon"></i>' +
+        '<div class="activity-icon" style="background-color: rgba(40, 167, 69, 0.15);"><i class="fas fa-chart-line text-success"></i></div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Active Learning Detected</strong>' +
@@ -334,7 +334,7 @@ TokenFreeRealtimeDashboard.prototype.showRealActivity = function(activity) {
         '</div>' +
     '</div>' +
     '<div class="activity-item">' +
-        '<i class="fas fa-target text-info activity-icon"></i>' +
+        '<div class="activity-icon" style="background-color: rgba(23, 162, 184, 0.15);"><i class="fas fa-chart-bar text-info"></i></div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Performance Update</strong>' +
@@ -344,7 +344,7 @@ TokenFreeRealtimeDashboard.prototype.showRealActivity = function(activity) {
         '</div>' +
     '</div>' +
     '<div class="activity-item">' +
-        '<i class="fas fa-brain text-warning activity-icon"></i>' +
+        '<div class="activity-icon" style="background-color: rgba(255, 193, 7, 0.15);"><i class="fas fa-brain text-warning"></i></div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>AI Engine Active</strong>' +
@@ -360,7 +360,7 @@ TokenFreeRealtimeDashboard.prototype.showSystemActivity = function() {
     var now = new Date().toLocaleTimeString();
     
     feed.innerHTML = '<div class="activity-item">' +
-        '<i class="fas fa-server text-primary activity-icon"></i>' +
+        '<div class="activity-icon" style="background-color: rgba(0, 123, 255, 0.15);"><i class="fas fa-server text-primary"></i></div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Token-Free System Online</strong>' +
@@ -370,7 +370,7 @@ TokenFreeRealtimeDashboard.prototype.showSystemActivity = function() {
         '</div>' +
     '</div>' +
     '<div class="activity-item">' +
-        '<i class="fas fa-database text-success activity-icon"></i>' +
+        '<div class="activity-icon" style="background-color: rgba(40, 167, 69, 0.15);"><i class="fas fa-database text-success"></i></div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Database Connected</strong>' +
@@ -380,7 +380,7 @@ TokenFreeRealtimeDashboard.prototype.showSystemActivity = function() {
         '</div>' +
     '</div>' +
     '<div class="activity-item waiting">' +
-        '<i class="fas fa-clock text-muted activity-icon"></i>' +
+        '<div class="activity-icon" style="background-color: rgba(108, 117, 125, 0.15);"><i class="fas fa-clock text-muted"></i></div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>Waiting for Student Activity</strong>' +
@@ -427,7 +427,7 @@ TokenFreeRealtimeDashboard.prototype.startPolling = function() {
 
 TokenFreeRealtimeDashboard.prototype.showError = function(message) {
     document.getElementById('activity-feed').innerHTML = '<div class="activity-item error">' +
-        '<i class="fas fa-exclamation-triangle text-warning activity-icon"></i>' +
+        '<div class="activity-icon" style="background-color: rgba(255, 193, 7, 0.15);"><i class="fas fa-exclamation-triangle text-warning"></i></div>' +
         '<div class="activity-content">' +
             '<div class="activity-text">' +
                 '<strong>System Status</strong>' +
@@ -535,8 +535,12 @@ document.addEventListener('DOMContentLoaded', function() {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background-color: rgba(0,0,0,0.1);
     margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.activity-icon i {
+    font-size: 1.2rem;
 }
 
 .activity-content {
