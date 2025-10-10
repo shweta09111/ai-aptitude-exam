@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}Question Generator - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-magic me-2"></i>Automated Question Generator</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Question Generator</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Total Questions</h5>
+                            <h3 class="mb-0">{{ total_questions }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-question-circle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">AI Generated</h5>
+                            <h3 class="mb-0">{{ generated_questions }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-robot fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Generation Rate</h5>
+                            <h3 class="mb-0">{{ '%.1f'|format((generated_questions / total_questions * 100) if total_questions > 0 else 0) }}%</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-chart-pie fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generation Tools -->
+    <div class="row">
+        <!-- Context-Based Generation -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-text me-2"></i>Generate from Context</h5>
+                </div>
+                <div class="card-body">
+                    <form id="contextGenerationForm">
+                        <div class="mb-3">
+                            <label for="context" class="form-label">Context Text</label>
+                            <textarea class="form-control" id="context" name="context" rows="8" 
+                                    placeholder="Enter detailed context about the topic you want to generate questions from (minimum 50 characters)..."
+                                    required></textarea>
+                            <div class="form-text">Provide comprehensive context for better question generation</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="maxQuestions" class="form-label">Number of Questions</label>
+                                    <select class="form-select" id="maxQuestions" name="max_questions">
+                                        <option value="3">3 Questions</option>
+                                        <option value="5" selected>5 Questions</option>
+                                        <option value="8">8 Questions</option>
+                                        <option value="10">10 Questions</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Category</label>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="generated">Generated</option>
+                                        <option value="programming">Programming</option>
+                                        <option value="aptitude">Aptitude</option>
+                                        <option value="logical">Logical</option>
+                                        <option value="verbal">Verbal</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="saveToDb" name="save_to_db" checked>
+                                <label class="form-check-label" for="saveToDb">
+                                    Save generated questions to database
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" id="generateBtn">
+                            <i class="fas fa-magic me-2"></i>Generate Questions
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topic-Based Generation -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Generate from Topics</h5>
+                </div>
+                <div class="card-body">
+                    <form id="topicGenerationForm">
+                        <div class="mb-3">
+                            <label for="topics" class="form-label">Topics (one per line)</label>
+                            <textarea class="form-control" id="topics" name="topics" rows="8" 
+                                    placeholder="Enter topics, one per line:&#10;Machine Learning&#10;Data Structures&#10;Algorithms&#10;Database Management&#10;Operating Systems"
+                                    required></textarea>
+                            <div class="form-text">Each topic will generate multiple questions</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="questionsPerTopic" class="form-label">Questions per Topic</label>
+                                    <select class="form-select" id="questionsPerTopic" name="questions_per_topic">
+                                        <option value="2">2 Questions</option>
+                                        <option value="3" selected>3 Questions</option>
+                                        <option value="5">5 Questions</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" id="saveToDbTopics" name="save_to_db" checked>
+                                        <label class="form-check-label" for="saveToDbTopics">
+                                            Save to database
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100" id="generateTopicsBtn">
+                            <i class="fas fa-cogs me-2"></i>Generate from Topics
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Generation -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-vial me-2"></i>Test Generation System</h5>
+                </div>
+                <div class="card-body">
+                    <p>Test the question generation system with sample context to verify it's working correctly.</p>
+                    <button type="button" class="btn btn-info" id="testGenerationBtn">
+                        <i class="fas fa-play me-2"></i>Test Generation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generated Questions Display -->
+    <div class="row mt-4" id="resultsSection" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Generated Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div id="generatedQuestions"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Generated Questions -->
+    {% if recent_generated %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recently Generated Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Question</th>
+                                    <th>Category</th>
+                                    <th>Difficulty</th>
+                                    <th>Confidence</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for question in recent_generated %}
+                                <tr>
+                                    <td>{{ question.id }}</td>
+                                    <td>{{ question.question_text[:80] }}{% if question.question_text|length > 80 %}...{% endif %}</td>
+                                    <td><span class="badge bg-secondary">{{ question.category }}</span></td>
+                                    <td>
+                                        <span class="badge {% if question.difficulty == 'easy' %}bg-success{% elif question.difficulty == 'medium' %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ question.difficulty|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ '%.2f'|format(question.confidence or 0) }}</td>
+                                    <td>{{ question.created_at }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5>Generating Questions...</h5>
+                <p class="text-muted mb-0">This may take a few moments while the AI model processes your request.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contextForm = document.getElementById('contextGenerationForm');
+    const topicForm = document.getElementById('topicGenerationForm');
+    const testBtn = document.getElementById('testGenerationBtn');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+    // Context-based generation
+    contextForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+            context: formData.get('context'),
+            max_questions: parseInt(formData.get('max_questions')),
+            category: formData.get('category'),
+            save_to_db: formData.has('save_to_db')
+        };
+
+        generateQuestions('/api/generate_questions', data);
+    });
+
+    // Topic-based generation
+    topicForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const topicsText = formData.get('topics');
+        const topics = topicsText.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+        
+        const data = {
+            topics: topics,
+            questions_per_topic: parseInt(formData.get('questions_per_topic')),
+            save_to_db: formData.has('save_to_db')
+        };
+
+        generateQuestions('/api/generate_questions_from_topics', data);
+    });
+
+    // Test generation
+    testBtn.addEventListener('click', function() {
+        generateQuestions('/api/test_question_generation', {}, 'GET');
+    });
+
+    function generateQuestions(endpoint, data, method = 'POST') {
+        loadingModal.show();
+
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        };
+
+        if (method === 'POST') {
+            options.body = JSON.stringify(data);
+        }
+
+        fetch(endpoint, options)
+            .then(response => response.json())
+            .then(result => {
+                loadingModal.hide();
+                
+                if (result.status === 'success') {
+                    displayResults(result);
+                    showAlert('success', result.message || 'Questions generated successfully!');
+                } else {
+                    showAlert('danger', result.error || 'Generation failed');
+                }
+            })
+            .catch(error => {
+                loadingModal.hide();
+                console.error('Error:', error);
+                showAlert('danger', 'Network error occurred while generating questions');
+            });
+    }
+
+    function displayResults(result) {
+        const resultsSection = document.getElementById('resultsSection');
+        const questionsDiv = document.getElementById('generatedQuestions');
+        
+        let questions = result.questions || result.generated_questions || [];
+        let html = '';
+
+        if (questions.length === 0) {
+            html = '<div class="alert alert-warning">No questions were generated.</div>';
+        } else {
+            html = '<div class="row">';
+            questions.forEach((q, index) => {
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <strong>Question ${index + 1}</strong>
+                                <span class="badge bg-${q.difficulty === 'easy' ? 'success' : q.difficulty === 'medium' ? 'warning' : 'danger'}">
+                                    ${q.difficulty || 'medium'}
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text"><strong>Q:</strong> ${q.question}</p>
+                                <p class="card-text"><strong>A:</strong> ${q.answer}</p>
+                                ${q.context ? `<p class="card-text"><small class="text-muted"><strong>Context:</strong> ${q.context.substring(0, 100)}...</small></p>` : ''}
+                                ${q.confidence ? `<p class="card-text"><small class="text-success">Confidence: ${(q.confidence * 100).toFixed(1)}%</small></p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        }
+
+        // Add generation summary
+        if (result.generated_count || result.saved_count) {
+            html = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Generation Summary:</strong> 
+                    Generated ${result.generated_count || 0} questions
+                    ${result.saved_count ? `, saved ${result.saved_count} to database` : ''}
+                    ${result.topics_processed ? ` from ${result.topics_processed} topics` : ''}
+                </div>
+            ` + html;
+        }
+
+        questionsDiv.innerHTML = html;
+        resultsSection.style.display = 'block';
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

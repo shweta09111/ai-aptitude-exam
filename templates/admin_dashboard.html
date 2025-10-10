@@ -214,6 +214,54 @@
             </div>
         </div>
 
+        <!-- Question Generator Card -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="feature-icon text-white rounded-3 mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 4rem; height: 4rem; background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);">
+                        <i class="fas fa-magic fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Question Generator</h5>
+                    <p class="card-text">AI-powered automated question generation</p>
+                    <a href="{{ url_for('question_generator_page') }}" class="btn" style="background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%); color: white;">
+                        <i class="fas fa-magic me-1"></i> Generate Questions
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cloud Sync Card -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="feature-icon text-white rounded-3 mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 4rem; height: 4rem; background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);">
+                        <i class="fas fa-cloud-upload-alt fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Cloud Sync</h5>
+                    <p class="card-text">Synchronize questions with cloud database</p>
+                    <a href="{{ url_for('cloud_sync_page') }}" class="btn" style="background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%); color: white;">
+                        <i class="fas fa-cloud-upload-alt me-1"></i> Cloud Sync
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Background Jobs Card -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="feature-icon text-white rounded-3 mb-3 mx-auto d-flex align-items-center justify-content-center" style="width: 4rem; height: 4rem; background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Background Jobs</h5>
+                    <p class="card-text">Automated task scheduling and monitoring</p>
+                    <a href="{{ url_for('background_jobs_page') }}" class="btn" style="background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); color: white;">
+                        <i class="fas fa-tasks me-1"></i> Manage Jobs
+                    </a>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 

@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Cloud Sync - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-cloud-upload-alt me-2"></i>Cloud Synchronization</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Cloud Sync</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card {% if cloud_available %}bg-success{% else %}bg-danger{% endif %} text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Cloud Status</h5>
+                            <h6 class="mb-0">{% if cloud_available %}Connected{% else %}Disconnected{% endif %}</h6>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas {% if cloud_available %}fa-cloud-upload-alt{% else %}fa-cloud-times{% endif %} fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Local Questions</h5>
+                            <h3 class="mb-0" id="localCount">{{ sync_status.local_questions }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-database fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Cloud Questions</h5>
+                            <h3 class="mb-0" id="cloudCount">{{ sync_status.cloud_questions }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-cloud fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Last Sync</h5>
+                            <h6 class="mb-0" id="lastSync">{{ sync_status.last_sync or 'Never' }}</h6>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-sync-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not cloud_available %}
+    <!-- Setup Instructions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning" role="alert">
+                <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Cloud Sync Not Available</h4>
+                <p>To enable cloud synchronization, you need to set up Supabase credentials:</p>
+                <ol>
+                    <li>Create a free Supabase project at <a href="https://supabase.com" target="_blank" class="alert-link">https://supabase.com</a></li>
+                    <li>Get your project URL and anon key from the project settings</li>
+                    <li>Add them to your <code>.env</code> file:
+                        <pre class="mt-2 p-2 bg-light text-dark rounded">SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key_here</pre>
+                    </li>
+                    <li>Create a <code>questions</code> table in your Supabase project with the required columns</li>
+                    <li>Restart the application</li>
+                </ol>
+                <button type="button" class="btn btn-outline-warning" id="testConnectionBtn">
+                    <i class="fas fa-plug me-2"></i>Test Connection
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if cloud_available %}
+    <!-- Sync Operations -->
+    <div class="row mb-4">
+        <!-- Upload to Cloud -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cloud-upload-alt me-2"></i>Upload to Cloud</h5>
+                </div>
+                <div class="card-body">
+                    <p>Upload local questions to Supabase cloud database.</p>
+                    <div class="mb-3">
+                        <label for="uploadLimit" class="form-label">Limit (optional)</label>
+                        <input type="number" class="form-control" id="uploadLimit" placeholder="All questions" min="1">
+                        <div class="form-text">Leave empty to upload all local questions</div>
+                    </div>
+                    <button type="button" class="btn btn-primary w-100" id="uploadBtn">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>Upload Questions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download from Cloud -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-cloud-download-alt me-2"></i>Download from Cloud</h5>
+                </div>
+                <div class="card-body">
+                    <p>Download questions from Supabase to local database.</p>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="updateLocal" checked>
+                            <label class="form-check-label" for="updateLocal">
+                                Update local database
+                            </label>
+                        </div>
+                        <div class="form-text">Uncheck to preview only</div>
+                    </div>
+                    <button type="button" class="btn btn-info w-100" id="downloadBtn">
+                        <i class="fas fa-cloud-download-alt me-2"></i>Download Questions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bidirectional Sync -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-sync-alt me-2"></i>Full Sync</h5>
+                </div>
+                <div class="card-body">
+                    <p>Perform bidirectional synchronization between local and cloud.</p>
+                    <div class="mb-3">
+                        <select class="form-select" id="syncDirection">
+                            <option value="bidirectional">Bidirectional (both ways)</option>
+                            <option value="upload">Upload only</option>
+                            <option value="download">Download only</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-success w-100" id="syncBtn">
+                        <i class="fas fa-sync-alt me-2"></i>Synchronize
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Connection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-vial me-2"></i>Test Connection</h5>
+                </div>
+                <div class="card-body">
+                    <p>Test the connection to your Supabase cloud database.</p>
+                    <button type="button" class="btn btn-warning" id="testConnectionBtn">
+                        <i class="fas fa-plug me-2"></i>Test Connection
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sync Results -->
+    <div class="row" id="resultsSection" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Sync Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="syncResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync History -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Sync History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Sync history tracking will be implemented in future updates.
+                        Current status shows real-time information about your local and cloud databases.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 id="loadingTitle">Processing...</h5>
+                <p class="text-muted mb-0" id="loadingMessage">Please wait while we process your request.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadBtn = document.getElementById('uploadBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const syncBtn = document.getElementById('syncBtn');
+    const testConnectionBtn = document.getElementById('testConnectionBtn');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+    // Upload to cloud
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', function() {
+            const limit = document.getElementById('uploadLimit').value;
+            const data = limit ? { limit: parseInt(limit) } : {};
+            
+            performSync('/api/cloud_sync/upload', data, 'Uploading to Cloud', 'Uploading questions to Supabase...');
+        });
+    }
+
+    // Download from cloud
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            const updateLocal = document.getElementById('updateLocal').checked;
+            const data = { update_local: updateLocal };
+            
+            performSync('/api/cloud_sync/download', data, 'Downloading from Cloud', 
+                       updateLocal ? 'Downloading and updating local database...' : 'Downloading questions (preview)...');
+        });
+    }
+
+    // Full sync
+    if (syncBtn) {
+        syncBtn.addEventListener('click', function() {
+            const direction = document.getElementById('syncDirection').value;
+            const data = { direction: direction };
+            
+            performSync('/api/cloud_sync/sync', data, 'Synchronizing', 'Performing bidirectional sync...');
+        });
+    }
+
+    // Test connection
+    if (testConnectionBtn) {
+        testConnectionBtn.addEventListener('click', function() {
+            performSync('/api/cloud_sync/test', {}, 'Testing Connection', 'Testing Supabase connection...', 'GET');
+        });
+    }
+
+    function performSync(endpoint, data, title, message, method = 'POST') {
+        showLoading(title, message);
+
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        };
+
+        if (method === 'POST') {
+            options.body = JSON.stringify(data);
+        }
+
+        fetch(endpoint, options)
+            .then(response => response.json())
+            .then(result => {
+                hideLoading();
+                
+                if (result.status === 'success') {
+                    displayResults(result, 'success');
+                    showAlert('success', result.message || 'Operation completed successfully!');
+                    
+                    // Refresh status
+                    refreshStatus();
+                } else {
+                    displayResults(result, 'error');
+                    showAlert('danger', result.error || 'Operation failed');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                showAlert('danger', 'Network error occurred during operation');
+            });
+    }
+
+    function showLoading(title, message) {
+        document.getElementById('loadingTitle').textContent = title;
+        document.getElementById('loadingMessage').textContent = message;
+        loadingModal.show();
+    }
+
+    function hideLoading() {
+        loadingModal.hide();
+    }
+
+    function displayResults(result, type) {
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsDiv = document.getElementById('syncResults');
+        
+        let html = '';
+
+        if (type === 'success') {
+            html = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>' + 
+                   (result.message || 'Operation completed successfully') + '</div>';
+
+            // Add specific result details
+            if (result.sync_results) {
+                const sr = result.sync_results;
+                html += `
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5>${sr.uploaded || 0}</h5>
+                                    <small>Questions Uploaded</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5>${sr.downloaded || 0}</h5>
+                                    <small>Questions Downloaded</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5>${sr.failed || 0}</h5>
+                                    <small>Failed Operations</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (result.uploaded !== undefined) {
+                html += `<p><strong>Uploaded:</strong> ${result.uploaded} questions</p>`;
+            }
+            if (result.downloaded !== undefined) {
+                html += `<p><strong>Downloaded:</strong> ${result.downloaded} questions</p>`;
+            }
+            if (result.updated !== undefined) {
+                html += `<p><strong>Updated in local DB:</strong> ${result.updated} questions</p>`;
+            }
+            if (result.test_result) {
+                html += `<p><strong>Test Result:</strong> ${result.test_result}</p>`;
+            }
+
+        } else {
+            html = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>' + 
+                   (result.error || 'Operation failed') + '</div>';
+                   
+            if (result.required_env) {
+                html += '<p><strong>Required Environment Variables:</strong></p><ul>';
+                result.required_env.forEach(env => {
+                    html += `<li><code>${env}</code></li>`;
+                });
+                html += '</ul>';
+            }
+        }
+
+        resultsDiv.innerHTML = html;
+        resultsSection.style.display = 'block';
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function refreshStatus() {
+        fetch('/api/cloud_sync/status')
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    const status = result.sync_status;
+                    document.getElementById('localCount').textContent = status.local_questions;
+                    document.getElementById('cloudCount').textContent = status.cloud_questions;
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing status:', error);
+            });
+    }
+
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Auto-refresh status every 30 seconds
+    setInterval(refreshStatus, 30000);
+});
+</script>
+{% endblock %}

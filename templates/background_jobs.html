@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Background Jobs - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-tasks me-2"></i>Background Jobs Scheduler</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Background Jobs</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Scheduler Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-server me-2"></i>Scheduler Status</h5>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-success me-2" id="startSchedulerBtn">
+                            <i class="fas fa-play me-1"></i>Start
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" id="stopSchedulerBtn">
+                            <i class="fas fa-stop me-1"></i>Stop
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="status-indicator {% if job_status.scheduler_running %}bg-success{% else %}bg-danger{% endif %}" 
+                                         id="schedulerStatus"></div>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Scheduler Status</h6>
+                                    <small class="text-muted" id="schedulerStatusText">
+                                        {% if job_status.scheduler_running %}Running{% else %}Stopped{% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-0">Active Jobs</h6>
+                            <small class="text-muted" id="activeJobsCount">
+                                {{ job_status.jobs|selectattr('enabled')|list|length if job_status.jobs else 0 }} of {{ job_status.jobs|length if job_status.jobs else 0 }} jobs enabled
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jobs List -->
+    <div class="row">
+        {% if job_status.jobs %}
+            {% for job_id, job_info in job_status.jobs.items() %}
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="me-2">
+                                {% if job_id == 'periodic_scraping' %}
+                                    <i class="fas fa-spider text-primary"></i>
+                                {% elif job_id == 'periodic_classification' %}
+                                    <i class="fas fa-brain text-info"></i>
+                                {% elif job_id == 'periodic_question_generation' %}
+                                    <i class="fas fa-magic text-warning"></i>
+                                {% elif job_id == 'periodic_cloud_sync' %}
+                                    <i class="fas fa-cloud-upload-alt text-success"></i>
+                                {% else %}
+                                    <i class="fas fa-cog text-secondary"></i>
+                                {% endif %}
+                            </div>
+                            <h6 class="mb-0">{{ job_info.name }}</h6>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input job-toggle" type="checkbox" 
+                                   id="toggle-{{ job_id }}" data-job-id="{{ job_id }}"
+                                   {% if job_info.enabled %}checked{% endif %}>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Status -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge 
+                                    {% if job_info.status == 'running' %}bg-primary
+                                    {% elif job_info.status == 'completed' %}bg-success
+                                    {% elif job_info.status == 'error' %}bg-danger
+                                    {% elif job_info.status == 'scheduled' %}bg-info
+                                    {% elif job_info.status == 'disabled' %}bg-secondary
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ job_info.status|title }}
+                                </span>
+                                <button type="button" class="btn btn-sm btn-outline-primary run-job-btn" 
+                                        data-job-id="{{ job_id }}">
+                                    <i class="fas fa-play me-1"></i>Run Now
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Schedule Info -->
+                        <div class="mb-3">
+                            {% if job_info.interval_minutes %}
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>Every {{ job_info.interval_minutes }} minutes
+                                </small>
+                            {% elif job_info.interval_hours %}
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>Every {{ job_info.interval_hours }} hours
+                                </small>
+                            {% elif job_info.cron_schedule %}
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>{{ job_info.cron_schedule }}
+                                </small>
+                            {% endif %}
+                        </div>
+
+                        <!-- Last Run -->
+                        {% if job_info.last_run %}
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                <strong>Last Run:</strong> {{ job_info.last_run }}
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Next Run -->
+                        {% if job_info.next_run %}
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                <strong>Next Run:</strong> {{ job_info.next_run }}
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Last Result -->
+                        {% if job_info.last_result %}
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                <strong>Last Result:</strong> {{ job_info.last_result }}
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Job Description -->
+                        <div class="mt-3">
+                            <p class="text-muted mb-0 small">
+                                {% if job_id == 'periodic_scraping' %}
+                                    Automatically scrapes new questions from various online sources and adds them to the database.
+                                {% elif job_id == 'periodic_classification' %}
+                                    Uses AI/ML models to classify and categorize unclassified questions in the database.
+                                {% elif job_id == 'periodic_question_generation' %}
+                                    Generates new questions using AI language models based on predefined topics.
+                                {% elif job_id == 'periodic_cloud_sync' %}
+                                    Synchronizes questions between local database and cloud storage (Supabase).
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h5>No Background Jobs Available</h5>
+                    <p>The background job scheduler is not initialized. Start the scheduler to see available jobs.</p>
+                    <button type="button" class="btn btn-primary" id="initSchedulerBtn">
+                        <i class="fas fa-rocket me-2"></i>Initialize Scheduler
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Job Logs -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Job Execution Log</h5>
+                </div>
+                <div class="card-body">
+                    <div id="jobLog" class="bg-light p-3 rounded" style="height: 300px; overflow-y: auto; font-family: monospace;">
+                        <div class="text-muted">Job execution logs will appear here...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Background Jobs Help</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-spider me-1"></i>Periodic Scraping</h6>
+                            <p class="small text-muted mb-3">
+                                Automatically collects questions from educational websites and coding platforms. 
+                                Runs every hour by default to keep the database updated with fresh content.
+                            </p>
+                            
+                            <h6><i class="fas fa-brain me-1"></i>Periodic Classification</h6>
+                            <p class="small text-muted mb-3">
+                                Uses BERT and other ML models to automatically classify question difficulty and categorize topics. 
+                                Processes unclassified questions every 30 minutes.
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-magic me-1"></i>Question Generation</h6>
+                            <p class="small text-muted mb-3">
+                                Uses T5 transformer models to generate new questions from predefined topics. 
+                                Runs every 6 hours to continuously expand the question database.
+                            </p>
+                            
+                            <h6><i class="fas fa-cloud-upload-alt me-1"></i>Cloud Sync</h6>
+                            <p class="small text-muted mb-3">
+                                Synchronizes questions with cloud database (Supabase) for backup and multi-instance deployment. 
+                                Runs every 12 hours when cloud credentials are configured.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 id="loadingTitle">Processing...</h5>
+                <p class="text-muted mb-0" id="loadingMessage">Please wait...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startBtn = document.getElementById('startSchedulerBtn');
+    const stopBtn = document.getElementById('stopSchedulerBtn');
+    const initBtn = document.getElementById('initSchedulerBtn');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    
+    let logMessages = [];
+
+    // Start scheduler
+    if (startBtn) {
+        startBtn.addEventListener('click', function() {
+            performAction('/api/background_jobs/start_scheduler', {}, 'Starting Scheduler', 'Starting background job scheduler...');
+        });
+    }
+
+    // Stop scheduler
+    if (stopBtn) {
+        stopBtn.addEventListener('click', function() {
+            performAction('/api/background_jobs/stop_scheduler', {}, 'Stopping Scheduler', 'Stopping background job scheduler...');
+        });
+    }
+
+    // Initialize scheduler
+    if (initBtn) {
+        initBtn.addEventListener('click', function() {
+            performAction('/api/background_jobs/start_scheduler', {}, 'Initializing Scheduler', 'Initializing background job scheduler...');
+        });
+    }
+
+    // Job toggles
+    document.querySelectorAll('.job-toggle').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const jobId = this.dataset.jobId;
+            const enabled = this.checked;
+            
+            performAction('/api/background_jobs/toggle_job', {
+                job_id: jobId,
+                enabled: enabled
+            }, 'Updating Job', `${enabled ? 'Enabling' : 'Disabling'} job ${jobId}...`);
+        });
+    });
+
+    // Run job buttons
+    document.querySelectorAll('.run-job-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const jobId = this.dataset.jobId;
+            
+            performAction('/api/background_jobs/run_job', {
+                job_id: jobId
+            }, 'Running Job', `Manually triggering job ${jobId}...`);
+        });
+    });
+
+    function performAction(endpoint, data, title, message) {
+        showLoading(title, message);
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            hideLoading();
+            
+            if (result.status === 'success') {
+                showAlert('success', result.message || 'Operation completed successfully!');
+                addLogMessage('success', result.message || 'Operation completed');
+                
+                // Refresh page after a short delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showAlert('danger', result.error || 'Operation failed');
+                addLogMessage('error', result.error || 'Operation failed');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            showAlert('danger', 'Network error occurred during operation');
+            addLogMessage('error', 'Network error occurred');
+        });
+    }
+
+    function showLoading(title, message) {
+        document.getElementById('loadingTitle').textContent = title;
+        document.getElementById('loadingMessage').textContent = message;
+        loadingModal.show();
+    }
+
+    function hideLoading() {
+        loadingModal.hide();
+    }
+
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    function addLogMessage(type, message) {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+        
+        logMessages.push(logEntry);
+        
+        // Keep only last 50 messages
+        if (logMessages.length > 50) {
+            logMessages = logMessages.slice(-50);
+        }
+        
+        updateLogDisplay();
+    }
+
+    function updateLogDisplay() {
+        const logDiv = document.getElementById('jobLog');
+        logDiv.innerHTML = logMessages.map(msg => `<div>${msg}</div>`).join('');
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // Auto-refresh status every 30 seconds
+    setInterval(() => {
+        fetch('/api/background_jobs/status')
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    const status = result.job_status;
+                    
+                    // Update scheduler status indicator
+                    const indicator = document.getElementById('schedulerStatus');
+                    const statusText = document.getElementById('schedulerStatusText');
+                    
+                    if (indicator && statusText) {
+                        if (status.scheduler_running) {
+                            indicator.className = 'status-indicator bg-success';
+                            statusText.textContent = 'Running';
+                        } else {
+                            indicator.className = 'status-indicator bg-danger';
+                            statusText.textContent = 'Stopped';
+                        }
+                    }
+                    
+                    // Update active jobs count
+                    const activeJobsEl = document.getElementById('activeJobsCount');
+                    if (activeJobsEl && status.jobs) {
+                        const enabledJobs = Object.values(status.jobs).filter(job => job.enabled).length;
+                        const totalJobs = Object.keys(status.jobs).length;
+                        activeJobsEl.textContent = `${enabledJobs} of ${totalJobs} jobs enabled`;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing status:', error);
+            });
+    }, 30000);
+});
+</script>
+{% endblock %}
