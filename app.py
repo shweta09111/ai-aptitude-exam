@@ -4546,7 +4546,7 @@ def question_generator_page():
         
         # Get recent generated questions
         recent_generated = conn.execute('''
-            SELECT id, question_text, category, difficulty, created_at, confidence
+            SELECT id, question_text, topic as category, difficulty, created_at, 0.0 as confidence
             FROM question 
             WHERE source = "ai_generated" 
             ORDER BY created_at DESC 
