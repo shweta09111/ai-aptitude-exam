@@ -4120,11 +4120,11 @@ def admin_users():
         # Get total count
         total = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
         
-        # Get users for current page
+        # Get users for current page - order by ID ascending so admin (ID 1) appears first
         users = conn.execute('''
             SELECT id, username, email, full_name, is_admin, created_at
             FROM users 
-            ORDER BY created_at DESC 
+            ORDER BY id ASC 
             LIMIT ? OFFSET ?
         ''', (per_page, offset)).fetchall()
         
@@ -4230,7 +4230,7 @@ def api_edit_user(user_id):
             conn.close()
             return jsonify({'status': 'error', 'error': 'Cannot edit main admin user'}), 403
             
-        # Update user details
+        # Update user deta
         full_name = data.get('full_name', '').strip()
         email = data.get('email', '').strip()
         is_admin = bool(data.get('is_admin', False))
