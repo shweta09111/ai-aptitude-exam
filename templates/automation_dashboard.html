@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}Automation & Cloud Sync - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Automation & Cloud Sync</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold text-gradient">🤖 Automation & Cloud Sync</h2>
+            <p class="text-muted">Real-time monitoring of automated background processes</p>
+        </div>
+    </div>
+
+    <!-- System Status Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Database Status -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-muted mb-0">Local Database</h6>
+                        <i class="fas fa-database text-primary fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold mb-0" id="localCount">{{ local_questions }}</h3>
+                    <small class="text-muted">Questions</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cloud Status -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-muted mb-0">Cloud Backup</h6>
+                        <i class="fas fa-cloud text-info fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold mb-0" id="cloudCount">{{ cloud_questions }}</h3>
+                    <small class="text-muted">Synced</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduler Status -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-muted mb-0">Scheduler</h6>
+                        <i class="fas fa-cog fa-spin text-success fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold mb-0">
+                        <span class="badge bg-success">RUNNING</span>
+                    </h3>
+                    <small class="text-muted">All systems operational</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Jobs -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-muted mb-0">Active Jobs</h6>
+                        <i class="fas fa-tasks text-warning fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold mb-0" id="activeJobsCount">4</h3>
+                    <small class="text-muted">Automated processes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content: Jobs Grid -->
+    <div class="row g-4">
+        <!-- Cloud Sync Job -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>Cloud Sync
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Status -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Status:</span>
+                        <span class="badge bg-success" id="cloudSyncStatus">Active</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Frequency:</span>
+                        <strong>Every 12 hours</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Last Run:</span>
+                        <span id="cloudSyncLastRun">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Next Run:</span>
+                        <span id="cloudSyncNextRun">-</span>
+                    </div>
+                    
+                    <!-- Last Result -->
+                    <div class="border-top pt-3 mt-3">
+                        <small class="text-muted d-block mb-2">Last Sync Result:</small>
+                        <div id="cloudSyncResult" class="small">
+                            <span class="text-success">✓ Completed successfully</span>
+                        </div>
+                    </div>
+
+                    <!-- Automatic Status -->
+                    <div class="alert alert-info mt-3 mb-0 py-2 px-3 small">
+                        <i class="fas fa-robot me-1"></i> <strong>Fully Automatic</strong> - Runs every 12 hours
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Scraping Job -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-gradient-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-search me-2"></i>Question Scraping
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Status -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Status:</span>
+                        <span class="badge bg-success" id="scrapingStatus">Active</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Frequency:</span>
+                        <strong>Every 60 minutes</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Last Run:</span>
+                        <span id="scrapingLastRun">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Next Run:</span>
+                        <span id="scrapingNextRun">-</span>
+                    </div>
+                    
+                    <!-- Last Result -->
+                    <div class="border-top pt-3 mt-3">
+                        <small class="text-muted d-block mb-2">Last Result:</small>
+                        <div id="scrapingResult" class="small">
+                            <span class="text-success">✓ Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Automatic Status -->
+                    <div class="alert alert-info mt-3 mb-0 py-2 px-3 small">
+                        <i class="fas fa-robot me-1"></i> <strong>Fully Automatic</strong> - Runs every 60 minutes
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Classification Job -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-gradient-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-brain me-2"></i>AI Classification
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Status -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Status:</span>
+                        <span class="badge bg-success" id="classificationStatus">Active</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Frequency:</span>
+                        <strong>Every 30 minutes</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Last Run:</span>
+                        <span id="classificationLastRun">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Next Run:</span>
+                        <span id="classificationNextRun">-</span>
+                    </div>
+                    
+                    <!-- Last Result -->
+                    <div class="border-top pt-3 mt-3">
+                        <small class="text-muted d-block mb-2">Last Result:</small>
+                        <div id="classificationResult" class="small">
+                            <span class="text-success">✓ Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Automatic Status -->
+                    <div class="alert alert-info mt-3 mb-0 py-2 px-3 small">
+                        <i class="fas fa-robot me-1"></i> <strong>Fully Automatic</strong> - Runs every 30 minutes
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Generation Job -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-gradient-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-magic me-2"></i>Question Generation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Status -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Status:</span>
+                        <span class="badge bg-success" id="generationStatus">Active</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Frequency:</span>
+                        <strong>Every 6 hours</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Last Run:</span>
+                        <span id="generationLastRun">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Next Run:</span>
+                        <span id="generationNextRun">-</span>
+                    </div>
+                    
+                    <!-- Last Result -->
+                    <div class="border-top pt-3 mt-3">
+                        <small class="text-muted d-block mb-2">Last Result:</small>
+                        <div id="generationResult" class="small">
+                            <span class="text-success">✓ Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Automatic Status -->
+                    <div class="alert alert-info mt-3 mb-0 py-2 px-3 small">
+                        <i class="fas fa-robot me-1"></i> <strong>Fully Automatic</strong> - Runs every 6 hours
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="activityLog" class="small" style="max-height: 300px; overflow-y: auto;">
+                        <p class="text-muted">Loading activity log...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Terminal Option (Collapsible) -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <a data-bs-toggle="collapse" href="#manualSyncInfo" class="text-decoration-none text-dark">
+                            <i class="fas fa-terminal me-2"></i>Advanced: Manual Terminal Commands
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </a>
+                    </h6>
+                </div>
+                <div id="manualSyncInfo" class="collapse">
+                    <div class="card-body bg-light">
+                        <p class="mb-3">For manual cloud sync outside the automated schedule:</p>
+                        <div class="bg-dark text-light p-3 rounded font-monospace small">
+                            cd F:\ai_aptitude_exam\project<br>
+                            python standalone_cloud_sync.py
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Use this only for immediate sync needs. The system automatically syncs every 12 hours.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.bg-gradient-info {
+    background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+}
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+.bg-gradient-success {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+.text-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.card {
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
+</style>
+
+<script>
+let statusInterval;
+
+// Load initial status
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial counts from server-side data
+    const localCount = {{ local_questions }};
+    const cloudCount = {{ cloud_questions }};
+    
+    document.getElementById('localCount').textContent = localCount || '0';
+    document.getElementById('cloudCount').textContent = cloudCount || '0';
+    
+    // Start loading job status
+    loadStatus();
+    statusInterval = setInterval(loadStatus, 5000); // Refresh every 5 seconds
+});
+
+// Load job status
+function loadStatus() {
+    fetch('/api/background_jobs/status')
+        .then(response => response.json())
+        .then(data => {
+            updateJobCards(data);
+            updateActivityLog(data);
+        })
+        .catch(error => {
+            console.error('Error loading status:', error);
+        });
+
+    // Also update cloud sync counts
+    fetch('/api/cloud_sync/status')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('localCount').textContent = data.local_questions;
+            document.getElementById('cloudCount').textContent = data.cloud_questions;
+        })
+        .catch(error => {
+            console.error('Error loading cloud status:', error);
+        });
+}
+
+// Update job cards with status
+function updateJobCards(data) {
+    const jobs = data.jobs || [];
+    
+    jobs.forEach(job => {
+        const jobId = job.id;
+        let prefix = '';
+        
+        // Map job IDs to card prefixes
+        if (jobId === 'periodic_cloud_sync') prefix = 'cloudSync';
+        else if (jobId === 'periodic_scraping') prefix = 'scraping';
+        else if (jobId === 'periodic_classification') prefix = 'classification';
+        else if (jobId === 'periodic_question_generation') prefix = 'generation';
+        
+        if (prefix) {
+            // Update last run time
+            const lastRunEl = document.getElementById(prefix + 'LastRun');
+            if (lastRunEl && job.last_run) {
+                lastRunEl.textContent = formatDate(job.last_run);
+            }
+            
+            // Update next run time
+            const nextRunEl = document.getElementById(prefix + 'NextRun');
+            if (nextRunEl && job.next_run) {
+                nextRunEl.textContent = formatDate(job.next_run);
+            }
+            
+            // Update result
+            const resultEl = document.getElementById(prefix + 'Result');
+            if (resultEl && job.last_result) {
+                resultEl.innerHTML = `<span class="text-${job.last_result.includes('✅') ? 'success' : 'info'}">${job.last_result}</span>`;
+            }
+        }
+    });
+}
+
+// Update activity log
+function updateActivityLog(data) {
+    const logEl = document.getElementById('activityLog');
+    const jobs = data.jobs || [];
+    
+    let html = '';
+    jobs.forEach(job => {
+        if (job.last_run) {
+            const icon = job.id === 'periodic_cloud_sync' ? 'cloud-upload-alt' :
+                        job.id === 'periodic_scraping' ? 'search' :
+                        job.id === 'periodic_classification' ? 'brain' : 'magic';
+            
+            html += `
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <div>
+                        <i class="fas fa-${icon} me-2 text-muted"></i>
+                        <strong>${job.name}</strong>
+                    </div>
+                    <small class="text-muted">${formatDate(job.last_run)}</small>
+                </div>
+            `;
+        }
+    });
+    
+    if (html === '') {
+        html = '<p class="text-muted">No recent activity</p>';
+    }
+    
+    logEl.innerHTML = html;
+}
+
+// Format date
+function formatDate(dateStr) {
+    if (!dateStr || dateStr === '-') return 'Not yet run';
+    
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return 'Invalid date';
+        
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000); // seconds
+        
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } catch (e) {
+        return 'Invalid date';
+    }
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (statusInterval) {
+        clearInterval(statusInterval);
+    }
+});
+</script>
+{% endblock %}

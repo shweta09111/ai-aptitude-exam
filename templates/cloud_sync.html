@@ -3,6 +3,7 @@
 {% block title %}Cloud Sync - Admin Panel{% endblock %}
 
 {% block content %}
+<!-- Version: 2.0 - Fixed loading modals and status display -->
 <div class="container-fluid">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -110,6 +111,40 @@ SUPABASE_ANON_KEY=your_anon_key_here</pre>
     {% endif %}
 
     {% if cloud_available %}
+    <!-- Background Sync Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Automatic Background Sync</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <p class="mb-2"><strong>✅ Background sync is enabled!</strong></p>
+                            <p class="mb-0">Your questions are automatically synced to Supabase cloud every <strong>12 hours</strong>.</p>
+                            <p class="text-muted small mb-0">Next automatic sync: <span id="nextSyncTime" class="badge bg-info">Loading...</span></p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button type="button" class="btn btn-success btn-lg" id="manualSyncBtn">
+                                <i class="fas fa-sync-alt me-2"></i>Sync Now
+                            </button>
+                        </div>
+                    </div>
+                    <div id="syncProgress" class="mt-3" style="display: none;">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 100%">
+                                Syncing questions to cloud...
+                            </div>
+                        </div>
+                        <p class="text-muted small mt-2">This may take a few minutes. Check server logs for progress.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sync Operations -->
     <div class="row mb-4">
         <!-- Upload to Cloud -->
@@ -246,12 +281,61 @@ SUPABASE_ANON_KEY=your_anon_key_here</pre>
 </div>
 
 <script>
+// Cache buster - Force reload if old version (v2.1 - 2025-10-11 22:20)
+const SCRIPT_VERSION = '2.1.20251011';
+const cachedVersion = sessionStorage.getItem('cloudSyncVersion');
+if (cachedVersion !== SCRIPT_VERSION) {
+    sessionStorage.setItem('cloudSyncVersion', SCRIPT_VERSION);
+    if (cachedVersion) {  // Only reload if there was a previous version
+        location.reload(true);  // Hard reload
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const uploadBtn = document.getElementById('uploadBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const syncBtn = document.getElementById('syncBtn');
+    const manualSyncBtn = document.getElementById('manualSyncBtn');
     const testConnectionBtn = document.getElementById('testConnectionBtn');
     const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+    // Manual sync button (new - uses standalone script)
+    if (manualSyncBtn) {
+        manualSyncBtn.addEventListener('click', function() {
+            const syncProgress = document.getElementById('syncProgress');
+            syncProgress.style.display = 'block';
+            manualSyncBtn.disabled = true;
+            
+            fetch('/api/cloud_sync/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    showAlert('success', '✅ ' + result.message);
+                    setTimeout(() => {
+                        syncProgress.style.display = 'none';
+                        manualSyncBtn.disabled = false;
+                        refreshStatus();
+                    }, 3000);
+                } else {
+                    showAlert('danger', '❌ ' + (result.error || 'Sync failed'));
+                    syncProgress.style.display = 'none';
+                    manualSyncBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', '❌ Network error occurred during sync');
+                syncProgress.style.display = 'none';
+                manualSyncBtn.disabled = false;
+            });
+        });
+    }
 
     // Upload to cloud
     if (uploadBtn) {
@@ -259,7 +343,36 @@ document.addEventListener('DOMContentLoaded', function() {
             const limit = document.getElementById('uploadLimit').value;
             const data = limit ? { limit: parseInt(limit) } : {};
             
-            performSync('/api/cloud_sync/upload', data, 'Uploading to Cloud', 'Uploading questions to Supabase...');
+            showLoading('Uploading to Cloud', 'Uploading questions to Supabase...');
+            uploadBtn.disabled = true;
+            
+            fetch('/api/cloud_sync/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                hideLoading();
+                uploadBtn.disabled = false;
+                
+                if (result.status === 'success') {
+                    showAlert('success', '✅ Upload started! This may take a few minutes. Check server logs for progress.');
+                    // Wait for sync to complete (15 seconds) then refresh
+                    setTimeout(() => {
+                        refreshStatus();
+                        checkSyncLogs();
+                    }, 15000);
+                } else {
+                    showAlert('danger', '❌ ' + (result.error || 'Upload failed'));
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                uploadBtn.disabled = false;
+                console.error('Error:', error);
+                showAlert('danger', '❌ Network error occurred during upload');
+            });
         });
     }
 
@@ -269,8 +382,35 @@ document.addEventListener('DOMContentLoaded', function() {
             const updateLocal = document.getElementById('updateLocal').checked;
             const data = { update_local: updateLocal };
             
-            performSync('/api/cloud_sync/download', data, 'Downloading from Cloud', 
-                       updateLocal ? 'Downloading and updating local database...' : 'Downloading questions (preview)...');
+            showLoading('Downloading from Cloud', updateLocal ? 'Downloading and updating local database...' : 'Downloading questions (preview)...');
+            downloadBtn.disabled = true;
+            
+            fetch('/api/cloud_sync/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                hideLoading();
+                downloadBtn.disabled = false;
+                
+                if (result.status === 'success') {
+                    const message = `✅ Download complete!\n📥 Downloaded: ${result.downloaded || 0} questions\n💾 Updated in DB: ${result.updated || 0} questions`;
+                    showAlert('success', message.replace(/\n/g, '<br>'));
+                    displayResults(result, 'success');
+                    refreshStatus();
+                } else {
+                    showAlert('danger', '❌ ' + (result.error || 'Download failed'));
+                    displayResults(result, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                downloadBtn.disabled = false;
+                console.error('Error:', error);
+                showAlert('danger', '❌ Network error occurred during download');
+            });
         });
     }
 
@@ -280,52 +420,91 @@ document.addEventListener('DOMContentLoaded', function() {
             const direction = document.getElementById('syncDirection').value;
             const data = { direction: direction };
             
-            performSync('/api/cloud_sync/sync', data, 'Synchronizing', 'Performing bidirectional sync...');
+            showLoading('Synchronizing', 'Performing bidirectional sync...');
+            syncBtn.disabled = true;
+            
+            fetch('/api/cloud_sync/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                hideLoading();
+                syncBtn.disabled = false;
+                
+                if (result.status === 'success') {
+                    showAlert('success', '✅ Sync started! This may take a few minutes. Check server logs for progress.');
+                    // Wait for sync to complete (15 seconds) then refresh
+                    setTimeout(() => {
+                        refreshStatus();
+                        checkSyncLogs();
+                    }, 15000);
+                } else {
+                    showAlert('danger', '❌ ' + (result.error || 'Sync failed'));
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                syncBtn.disabled = false;
+                console.error('Error:', error);
+                showAlert('danger', '❌ Network error occurred during sync');
+            });
         });
     }
 
     // Test connection
     if (testConnectionBtn) {
         testConnectionBtn.addEventListener('click', function() {
-            performSync('/api/cloud_sync/test', {}, 'Testing Connection', 'Testing Supabase connection...', 'GET');
-        });
-    }
-
-    function performSync(endpoint, data, title, message, method = 'POST') {
-        showLoading(title, message);
-
-        const options = {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        };
-
-        if (method === 'POST') {
-            options.body = JSON.stringify(data);
-        }
-
-        fetch(endpoint, options)
+            showLoading('Testing Connection', 'Testing Supabase connection...');
+            testConnectionBtn.disabled = true;
+            
+            fetch('/api/cloud_sync/test', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
             .then(response => response.json())
             .then(result => {
                 hideLoading();
+                testConnectionBtn.disabled = false;
                 
                 if (result.status === 'success') {
+                    const message = `✅ Connection successful!\n📊 Cloud questions: ${result.cloud_questions || 0}\n🔗 Supabase is working properly`;
+                    showAlert('success', message.replace(/\n/g, '<br>'));
                     displayResults(result, 'success');
-                    showAlert('success', result.message || 'Operation completed successfully!');
-                    
-                    // Refresh status
-                    refreshStatus();
                 } else {
+                    showAlert('danger', '❌ Connection failed: ' + (result.error || 'Unknown error'));
                     displayResults(result, 'error');
-                    showAlert('danger', result.error || 'Operation failed');
                 }
             })
             .catch(error => {
                 hideLoading();
+                testConnectionBtn.disabled = false;
                 console.error('Error:', error);
-                showAlert('danger', 'Network error occurred during operation');
+                showAlert('danger', '❌ Network error occurred during connection test');
             });
+        });
+    }
+
+    function checkSyncLogs() {
+        // Show a message to check logs for detailed results
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsDiv = document.getElementById('syncResults');
+        
+        resultsDiv.innerHTML = `
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle me-2"></i>Sync in Progress</h5>
+                <p class="mb-2">The synchronization is running in the background.</p>
+                <p class="mb-0"><strong>To see detailed results:</strong></p>
+                <ol class="mb-0 mt-2">
+                    <li>Check your terminal/server logs for real-time progress</li>
+                    <li>Look for messages starting with "📊", "✅", "⏭️", "❌"</li>
+                    <li>Status cards above will update automatically when sync completes</li>
+                </ol>
+            </div>
+        `;
+        resultsSection.style.display = 'block';
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
     }
 
     function showLoading(title, message) {
@@ -348,50 +527,41 @@ document.addEventListener('DOMContentLoaded', function() {
             html = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>' + 
                    (result.message || 'Operation completed successfully') + '</div>';
 
-            // Add specific result details
-            if (result.sync_results) {
-                const sr = result.sync_results;
-                html += `
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="card bg-light">
+            // Create stats cards
+            const stats = [];
+            if (result.uploaded !== undefined) stats.push({ label: 'Uploaded', value: result.uploaded, icon: 'upload' });
+            if (result.downloaded !== undefined) stats.push({ label: 'Downloaded', value: result.downloaded, icon: 'download' });
+            if (result.updated !== undefined) stats.push({ label: 'Updated in DB', value: result.updated, icon: 'database' });
+            if (result.cloud_questions !== undefined) stats.push({ label: 'Cloud Questions', value: result.cloud_questions, icon: 'cloud' });
+            if (result.failed !== undefined && result.failed > 0) stats.push({ label: 'Failed', value: result.failed, icon: 'times-circle', color: 'danger' });
+
+            if (stats.length > 0) {
+                html += '<div class="row mt-3">';
+                stats.forEach(stat => {
+                    const color = stat.color || 'primary';
+                    html += `
+                        <div class="col-md-${12 / Math.min(stats.length, 4)}">
+                            <div class="card border-${color} mb-3">
                                 <div class="card-body text-center">
-                                    <h5>${sr.uploaded || 0}</h5>
-                                    <small>Questions Uploaded</small>
+                                    <i class="fas fa-${stat.icon} fa-2x text-${color} mb-2"></i>
+                                    <h3 class="mb-1">${stat.value}</h3>
+                                    <small class="text-muted">${stat.label}</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="card bg-light">
-                                <div class="card-body text-center">
-                                    <h5>${sr.downloaded || 0}</h5>
-                                    <small>Questions Downloaded</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-light">
-                                <div class="card-body text-center">
-                                    <h5>${sr.failed || 0}</h5>
-                                    <small>Failed Operations</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    `;
+                });
+                html += '</div>';
             }
 
-            if (result.uploaded !== undefined) {
-                html += `<p><strong>Uploaded:</strong> ${result.uploaded} questions</p>`;
-            }
-            if (result.downloaded !== undefined) {
-                html += `<p><strong>Downloaded:</strong> ${result.downloaded} questions</p>`;
-            }
-            if (result.updated !== undefined) {
-                html += `<p><strong>Updated in local DB:</strong> ${result.updated} questions</p>`;
-            }
+            // Add test result
             if (result.test_result) {
-                html += `<p><strong>Test Result:</strong> ${result.test_result}</p>`;
+                html += `<div class="alert alert-info mt-3"><strong>Test Result:</strong> ${result.test_result}</div>`;
+            }
+
+            // Add note
+            if (result.note) {
+                html += `<div class="alert alert-warning mt-3"><i class="fas fa-info-circle me-2"></i>${result.note}</div>`;
             }
 
         } else {
@@ -409,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         resultsDiv.innerHTML = html;
         resultsSection.style.display = 'block';
-        resultsSection.scrollIntoView({ behavior: 'smooth' });
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function refreshStatus() {

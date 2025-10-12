@@ -1,0 +1,280 @@
+===========================================
+📋 READY-TO-USE TOPICS FOR "GENERATE FROM TOPICS"
+===========================================
+
+Just copy any list below and paste into the "Topics (one per line)" field!
+
+
+📚 LIST 1: CORE COMPUTER SCIENCE (5 Topics)
+-------------------------------------------
+Data Structures
+Algorithms
+Database Management
+Operating Systems
+Computer Networks
+
+
+💻 LIST 2: PROGRAMMING & SOFTWARE (5 Topics)
+-------------------------------------------
+Python Programming
+Java Programming
+Object-Oriented Programming
+Design Patterns
+Software Testing
+
+
+🌐 LIST 3: WEB DEVELOPMENT (5 Topics)
+-------------------------------------------
+HTML & CSS
+JavaScript
+React
+Node.js
+REST APIs
+
+
+🤖 LIST 4: AI & MACHINE LEARNING (5 Topics)
+-------------------------------------------
+Machine Learning
+Deep Learning
+Neural Networks
+Natural Language Processing
+Computer Vision
+
+
+☁️ LIST 5: CLOUD & DEVOPS (5 Topics)
+-------------------------------------------
+Cloud Computing
+Docker
+Kubernetes
+CI/CD
+Microservices
+
+
+🔒 LIST 6: SECURITY (5 Topics)
+-------------------------------------------
+Cybersecurity
+Encryption
+Authentication
+Network Security
+Web Security
+
+
+📊 LIST 7: DATA SCIENCE (5 Topics)
+-------------------------------------------
+Data Analysis
+Statistics
+Data Visualization
+Big Data
+Data Mining
+
+
+🏗️ LIST 8: SYSTEM DESIGN (5 Topics)
+-------------------------------------------
+System Architecture
+Scalability
+Load Balancing
+Caching
+Distributed Systems
+
+
+💾 LIST 9: DATABASE TOPICS (5 Topics)
+-------------------------------------------
+SQL
+NoSQL
+Database Indexing
+Transactions
+Query Optimization
+
+
+🎯 LIST 10: MIXED APTITUDE (10 Topics)
+-------------------------------------------
+Arrays
+Linked Lists
+Binary Trees
+Sorting Algorithms
+Searching Algorithms
+Time Complexity
+Space Complexity
+Recursion
+Dynamic Programming
+Greedy Algorithms
+
+Copy any list below and paste into "Topics (one per line)" field!
+
+═══════════════════════════════════════════════════════════════
+
+LIST 1 (Core CS - Start Here!)
+Data Structures
+Algorithms
+Database Management
+Operating Systems
+Computer Networks
+
+═══════════════════════════════════════════════════════════════
+
+LIST 2 (Programming)
+Python Programming
+Java Programming
+Object-Oriented Programming
+Design Patterns
+Software Testing
+
+═══════════════════════════════════════════════════════════════
+
+LIST 3 (Web Development)
+HTML & CSS
+JavaScript
+React
+Node.js
+REST APIs
+
+═══════════════════════════════════════════════════════════════
+
+LIST 4 (AI & ML)
+Machine Learning
+Deep Learning
+Neural Networks
+Natural Language Processing
+Computer Vision
+
+═══════════════════════════════════════════════════════════════
+
+LIST 5 (Cloud & DevOps)
+Cloud Computing
+Docker
+Kubernetes
+CI/CD
+Microservices
+
+═══════════════════════════════════════════════════════════════
+
+LIST 6 (Security)
+Cybersecurity
+Encryption
+Authentication
+Network Security
+Web Security
+
+═══════════════════════════════════════════════════════════════
+
+LIST 7 (Data Science)
+Data Analysis
+Statistics
+Data Visualization
+Big Data
+Data Mining
+
+═══════════════════════════════════════════════════════════════
+
+LIST 8 (System Design)
+System Architecture
+Scalability
+Load Balancing
+Caching
+Distributed Systems
+
+═══════════════════════════════════════════════════════════════
+
+LIST 9 (Database)
+SQL
+NoSQL
+Database Indexing
+Transactions
+Query Optimization
+
+═══════════════════════════════════════════════════════════════
+
+LIST 10 (Algorithms - Comprehensive)
+Arrays
+Linked Lists
+Binary Trees
+Sorting Algorithms
+Searching Algorithms
+Time Complexity
+Space Complexity
+Recursion
+Dynamic Programming
+Greedy Algorithms
+
+═══════════════════════════════════════════════════════════════
+
+QUICK MIX (8 Topics - Good Balance)
+Data Structures
+Algorithms
+Python Programming
+Web Development
+Machine Learning
+Cloud Computing
+Cybersecurity
+Database Management
+
+═══════════════════════════════════════════════════════════════
+
+===========================================
+📖 HOW TO USE
+===========================================
+
+STEP 1: Copy any list above (e.g., LIST 1)
+
+STEP 2: Go to Question Generator page
+
+STEP 3: Click "Generate from Topics [MANUAL]" tab
+
+STEP 4: Paste the topics in the text area
+
+STEP 5: Select "Questions per Topic" (2, 3, 4, or 5)
+
+STEP 6: Check "Save to database" checkbox
+
+STEP 7: Click "🌟 Generate from Topics" button
+
+STEP 8: Wait 1-2 minutes
+
+STEP 9: View generated questions below!
+
+
+===========================================
+💡 PRO TIPS
+===========================================
+
+• Start with LIST 1 (Core CS) - 5 topics × 3 questions = 15 total
+• Use 3 questions per topic for balanced variety
+• Mix different lists for comprehensive coverage
+• Check "Save to database" to keep questions
+• Topics are automatically matched to knowledge base
+• Generation takes ~15-30 seconds per question
+
+
+===========================================
+🎯 EXAMPLE USAGE
+===========================================
+
+For quick 15 questions:
+  Copy: LIST 1 (5 topics)
+  Set: 3 questions per topic
+  Result: 15 diverse questions
+
+For comprehensive 50 questions:
+  Copy: LIST 10 (10 topics)
+  Set: 5 questions per topic
+  Result: 50 algorithm questions
+
+For web dev focus:
+  Copy: LIST 3 (5 web topics)
+  Set: 4 questions per topic
+  Result: 20 web development questions
+
+
+===========================================
+✨ READY TO TRY?
+===========================================
+
+Copy LIST 1 now and generate your first batch of questions!
+
+Data Structures
+Algorithms
+Database Management
+Operating Systems
+Computer Networks
+
+Paste this into "Topics (one per line)" field and click Generate!

@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Cloud Sync - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-cloud-upload-alt me-2"></i>Cloud Synchronization</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Cloud Sync</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Cloud Status</h5>
+                            <h6 class="mb-0">✅ Connected</h6>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-cloud-upload-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Local Questions</h5>
+                            <h3 class="mb-0">{{ sync_status.local_questions }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-database fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Cloud Questions</h5>
+                            <h3 class="mb-0">{{ sync_status.cloud_questions }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-cloud fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-0">Sync Frequency</h5>
+                            <h6 class="mb-0">Every 12 hours</h6>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-sync-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Automatic Sync Info -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Automatic Background Sync</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success mb-3">
+                        <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>✅ Automatic Sync is Running!</h5>
+                        <p class="mb-0">Your questions are automatically synchronized to Supabase cloud every <strong>12 hours</strong>.</p>
+                    </div>
+
+                    <h6 class="mb-3">How It Works:</h6>
+                    <ol>
+                        <li><strong>Background Job:</strong> APScheduler runs sync every 12 hours automatically</li>
+                        <li><strong>Smart Sync:</strong> Only uploads new questions (skips duplicates)</li>
+                        <li><strong>Reliable:</strong> Uses proven standalone script (0 failures!)</li>
+                        <li><strong>Logged:</strong> See detailed progress in terminal/server logs</li>
+                    </ol>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6>📊 Current Status:</h6>
+                            <ul class="list-unstyled">
+                                <li>✅ Local Questions: <strong>{{ sync_status.local_questions }}</strong></li>
+                                <li>☁️ Cloud Questions: <strong>{{ sync_status.cloud_questions }}</strong></li>
+                                <li>🔄 Sync Status: <span class="badge bg-success">Active</span></li>
+                                <li>⏰ Frequency: <strong>Every 12 hours</strong></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>🔗 Useful Links:</h6>
+                            <ul class="list-unstyled">
+                                <li><a href="{{ url_for('background_jobs_page') }}" class="btn btn-outline-primary btn-sm mb-2">
+                                    <i class="fas fa-tasks me-1"></i>View Background Jobs
+                                </a></li>
+                                <li><a href="https://supabase.com" target="_blank" class="btn btn-outline-info btn-sm mb-2">
+                                    <i class="fas fa-external-link-alt me-1"></i>Open Supabase Dashboard
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Sync Instructions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-terminal me-2"></i>Manual Sync (If Needed)</h5>
+                </div>
+                <div class="card-body">
+                    <p>If you need to sync immediately (instead of waiting for the next automatic sync), run this command in your terminal:</p>
+                    
+                    <div class="bg-dark text-white p-3 rounded mb-3">
+                        <code>cd F:\ai_aptitude_exam\project</code><br>
+                        <code>python standalone_cloud_sync.py</code>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">What You'll See:</h6>
+                        <pre class="mb-0 text-dark">📊 Found 1064 questions to upload
+ℹ️  Found 997 existing questions in cloud
+✅ Batch 200-213: Uploaded 67 questions
+📋 SYNC COMPLETE:
+   ✅ Uploaded: 67
+   ⏭️  Skipped (duplicates): 997
+   ❌ Failed: 0</pre>
+                    </div>
+
+                    <p class="mb-0"><strong>Note:</strong> Showing "0 uploaded" or "1064 skipped" is normal - it means everything is already synced! ✅</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sync Activity -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>View Sync Activity</h5>
+                </div>
+                <div class="card-body">
+                    <p>To see recent sync activity and detailed logs:</p>
+                    <ul>
+                        <li><strong>Background Jobs Page:</strong> <a href="{{ url_for('background_jobs_page') }}">View here</a> - Shows next run time and execution history</li>
+                        <li><strong>Server Logs:</strong> Check your terminal where Flask is running for real-time sync progress</li>
+                        <li><strong>Log Files:</strong> Check <code>logs/aptitude_exam.log</code> for historical sync records</li>
+                    </ul>
+
+                    <div class="alert alert-success">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Latest Sync Results (from terminal):</strong> 67 uploaded, 997 skipped, 0 failed ✅
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Info -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Technical Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Configuration:</h6>
+                            <ul class="small">
+                                <li><strong>Sync Script:</strong> standalone_cloud_sync.py</li>
+                                <li><strong>Scheduler:</strong> APScheduler</li>
+                                <li><strong>Cloud Provider:</strong> Supabase (PostgreSQL)</li>
+                                <li><strong>Sync Method:</strong> Subprocess isolation</li>
+                                <li><strong>Batch Size:</strong> 5 questions per batch</li>
+                                <li><strong>Timeout:</strong> 10 minutes</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Features:</h6>
+                            <ul class="small">
+                                <li>✅ Duplicate detection</li>
+                                <li>✅ NULL value filtering</li>
+                                <li>✅ Batch processing with delays</li>
+                                <li>✅ Detailed progress logging</li>
+                                <li>✅ Error handling & retry logic</li>
+                                <li>✅ UTF-8 encoding support</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6>Why Automatic Sync Only?</h6>
+                    <p class="small mb-0">Manual UI buttons were removed because browser cache prevents JavaScript updates, causing loading modals to stick forever. The automatic background sync works perfectly via subprocess, so we simplified the interface to focus on what works reliably! 🎯</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

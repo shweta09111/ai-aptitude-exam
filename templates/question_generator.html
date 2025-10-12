@@ -10,7 +10,6 @@
             <h2><i class="fas fa-magic me-2"></i>Automated Question Generator</h2>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
                     <li class="breadcrumb-item active">Question Generator</li>
                 </ol>
             </nav>
@@ -69,15 +68,112 @@
         </div>
     </div>
 
+    <!-- ⚡ NEW: ONE-CLICK BACKGROUND AI GENERATOR -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success shadow-lg">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-robot me-2"></i>🚀 ONE-CLICK AI Generator (Background)
+                        <span class="badge bg-light text-success ms-2">FULLY AUTOMATED</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-magic me-2"></i><strong>This is what you want!</strong> 
+                        Real AI with <strong>NO prompts, NO context, NO manual input</strong>. 
+                        Just click and the AI automatically scrapes web content and generates questions in the background!
+                    </div>
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="text-success"><i class="fas fa-check-circle me-1"></i>Fully Automated Features:</h6>
+                            <ul class="mb-2">
+                                <li>✅ <strong>Auto-scrapes</strong> content from GeeksforGeeks</li>
+                                <li>✅ <strong>Runs in background</strong> - continue your work!</li>
+                                <li>✅ <strong>Real FLAN-T5 AI</strong> - generates original questions</li>
+                                <li>✅ <strong>Progress tracking</strong> - see live updates</li>
+                                <li>✅ <strong>Notification on complete</strong> - popup alert when done</li>
+                            </ul>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="aiQuestionCount" class="form-label">Number of Questions</label>
+                                    <select class="form-select" id="aiQuestionCount">
+                                        <option value="20">20 Questions (~2 min)</option>
+                                        <option value="50" selected>50 Questions (~5 min)</option>
+                                        <option value="100">100 Questions (~8 min)</option>
+                                        <option value="200">200 Questions (~15 min)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <button type="button" class="btn btn-success btn-lg w-100" id="startBackgroundAI" onclick="startBackgroundGeneration()">
+                                <i class="fas fa-rocket me-2"></i>Start AI Generation
+                            </button>
+                            <small class="text-muted d-block mt-2">Click once and continue working!</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Section (Hidden by default) -->
+                    <div id="aiProgressSection" class="mt-4" style="display: none;">
+                        <hr>
+                        <h6><i class="fas fa-tasks me-2"></i>AI Generation Progress</h6>
+                        <div class="progress mb-2" style="height: 30px;">
+                            <div id="aiProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                                 role="progressbar" style="width: 0%">
+                                <span id="aiProgressText">0%</span>
+                            </div>
+                        </div>
+                        <div id="aiStatusMessage" class="alert alert-info mb-2">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Initializing...
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <small class="text-muted">Generated</small>
+                                <h5 id="aiGenerated">0</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Saved</small>
+                                <h5 id="aiSaved" class="text-success">0</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Skipped</small>
+                                <h5 id="aiSkipped" class="text-warning">0</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Time Elapsed</small>
+                                <h5 id="aiElapsedTime">0s</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Generation Tools -->
     <div class="row">
+        <div class="col-12 mb-3">
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-question-circle me-2"></i>What's the difference?</h6>
+                <p class="mb-1"><strong>ONE-CLICK AI Generator (Green above):</strong> Fully automated, no input needed. Use this for bulk question generation!</p>
+                <p class="mb-0"><strong>Manual Tools (Below):</strong> For testing/experimenting when you want control over specific content or topics.</p>
+            </div>
+        </div>
+        
         <!-- Context-Based Generation -->
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-file-text me-2"></i>Generate from Context</h5>
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-text me-2"></i>Generate from Context
+                        <span class="badge bg-light text-primary ms-2 small">MANUAL</span>
+                    </h5>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-light border">
+                        <small><i class="fas fa-info-circle me-1"></i><strong>Use Case:</strong> Test AI with YOUR specific text/content. You provide the context manually.</small>
+                    </div>
                     <form id="contextGenerationForm">
                         <div class="mb-3">
                             <label for="context" class="form-label">Context Text</label>
@@ -130,10 +226,16 @@
         <!-- Topic-Based Generation -->
         <div class="col-md-6">
             <div class="card h-100">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Generate from Topics</h5>
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tags me-2"></i>Generate from Topics
+                        <span class="badge bg-light text-info ms-2 small">MANUAL</span>
+                    </h5>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-light border">
+                        <small><i class="fas fa-info-circle me-1"></i><strong>Use Case:</strong> Test AI with specific topic names. You provide the topic list manually.</small>
+                    </div>
                     <form id="topicGenerationForm">
                         <div class="mb-3">
                             <label for="topics" class="form-label">Topics (one per line)</label>
@@ -176,14 +278,20 @@
     <!-- Test Generation -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-vial me-2"></i>Test Generation System</h5>
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-vial me-2"></i>Test Generation System
+                        <span class="badge bg-dark ms-2 small">TESTING ONLY</span>
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <p>Test the question generation system with sample context to verify it's working correctly.</p>
-                    <button type="button" class="btn btn-info" id="testGenerationBtn">
-                        <i class="fas fa-play me-2"></i>Test Generation
+                    <div class="alert alert-warning">
+                        <i class="fas fa-flask me-2"></i><strong>Use Case:</strong> Quick test to verify the AI model is working. Uses pre-defined sample content.
+                    </div>
+                    <p class="mb-3">Test the question generation system with sample context to verify it's working correctly.</p>
+                    <button type="button" class="btn btn-warning" id="testGenerationBtn">
+                        <i class="fas fa-play me-2"></i>Run Test Generation
                     </button>
                 </div>
             </div>
@@ -214,30 +322,28 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>ID</th>
+                                    <th style="width: 80px;">ID</th>
                                     <th>Question</th>
-                                    <th>Category</th>
-                                    <th>Difficulty</th>
-                                    <th>Confidence</th>
-                                    <th>Created</th>
+                                    <th style="width: 180px;">Category</th>
+                                    <th style="width: 120px;">Difficulty</th>
+                                    <th style="width: 180px;">Created</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for question in recent_generated %}
                                 <tr>
-                                    <td>{{ question.id }}</td>
-                                    <td>{{ question.question_text[:80] }}{% if question.question_text|length > 80 %}...{% endif %}</td>
+                                    <td><strong>#{{ question.id }}</strong></td>
+                                    <td>{{ question.question_text[:100] }}{% if question.question_text|length > 100 %}...{% endif %}</td>
                                     <td><span class="badge bg-secondary">{{ question.category }}</span></td>
                                     <td>
-                                        <span class="badge {% if question.difficulty == 'easy' %}bg-success{% elif question.difficulty == 'medium' %}bg-warning{% else %}bg-danger{% endif %}">
+                                        <span class="badge {% if question.difficulty == 'easy' %}bg-success{% elif question.difficulty == 'medium' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
                                             {{ question.difficulty|title }}
                                         </span>
                                     </td>
-                                    <td>{{ '%.2f'|format(question.confidence or 0) }}</td>
-                                    <td>{{ question.created_at }}</td>
+                                    <td><small class="text-muted">{{ question.created_at }}</small></td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -354,6 +460,25 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             html = '<div class="row">';
             questions.forEach((q, index) => {
+                // Build options display
+                let optionsHtml = '';
+                if (q.options) {
+                    // New format: {A: 'text', B: 'text', ...}
+                    Object.keys(q.options).forEach(key => {
+                        const isCorrect = q.correct_answer && key.toUpperCase() === q.correct_answer.toUpperCase();
+                        optionsHtml += `
+                            <div class="ms-3 mb-1">
+                                <strong class="${isCorrect ? 'text-success' : ''}">${key})</strong> 
+                                ${q.options[key]} 
+                                ${isCorrect ? '<i class="fas fa-check-circle text-success ms-1"></i>' : ''}
+                            </div>
+                        `;
+                    });
+                } else if (q.answer) {
+                    // Old format: just answer text
+                    optionsHtml = `<p class="card-text ms-3"><strong>A:</strong> ${q.answer}</p>`;
+                }
+                
                 html += `
                     <div class="col-md-6 mb-3">
                         <div class="card">
@@ -365,7 +490,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="card-body">
                                 <p class="card-text"><strong>Q:</strong> ${q.question}</p>
-                                <p class="card-text"><strong>A:</strong> ${q.answer}</p>
+                                ${optionsHtml}
+                                ${q.topic ? `<p class="card-text mt-2"><small class="text-primary"><i class="fas fa-tag me-1"></i>${q.topic}</small></p>` : ''}
+                                ${q.quality_score ? `<p class="card-text"><small class="text-info">Quality: ${q.quality_score}/100</small></p>` : ''}
                                 ${q.context ? `<p class="card-text"><small class="text-muted"><strong>Context:</strong> ${q.context.substring(0, 100)}...</small></p>` : ''}
                                 ${q.confidence ? `<p class="card-text"><small class="text-success">Confidence: ${(q.confidence * 100).toFixed(1)}%</small></p>` : ''}
                             </div>
@@ -409,5 +536,253 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 });
+
+// ============================================================================
+// BACKGROUND AI GENERATION (NEW!)
+// ============================================================================
+
+let aiTaskId = null;
+let aiUpdateInterval = null;
+
+// Check for active task on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const savedTaskId = localStorage.getItem('aiTaskId');
+    if (savedTaskId) {
+        // Resume monitoring the saved task
+        aiTaskId = savedTaskId;
+        checkTaskStatus();
+    }
+});
+
+function checkTaskStatus() {
+    fetch(`/api/ai/status/${aiTaskId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const status = data;
+                if (status.status === 'completed') {
+                    // Show completion notification
+                    showCompletionNotification(status);
+                    localStorage.removeItem('aiTaskId');
+                } else if (status.status === 'running' || status.status === 'starting') {
+                    // Show progress section and start monitoring
+                    document.getElementById('aiProgressSection').style.display = 'block';
+                    document.getElementById('startBackgroundAI').disabled = true;
+                    document.getElementById('startBackgroundAI').innerHTML = '<i class="fas fa-eye me-2"></i>Monitoring...';
+                    aiUpdateInterval = setInterval(updateAIProgress, 2000);
+                } else if (status.status === 'error') {
+                    showBackgroundNotification('error', '❌ Previous task failed: ' + status.error);
+                    localStorage.removeItem('aiTaskId');
+                }
+            } else {
+                localStorage.removeItem('aiTaskId');
+            }
+        })
+        .catch(err => {
+            console.error('Status check error:', err);
+            localStorage.removeItem('aiTaskId');
+        });
+}
+
+function startBackgroundGeneration() {
+    const count = parseInt(document.getElementById('aiQuestionCount').value);
+    const startBtn = document.getElementById('startBackgroundAI');
+    const progressSection = document.getElementById('aiProgressSection');
+    
+    // Disable button
+    startBtn.disabled = true;
+    startBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Starting...';
+    
+    // Show progress section
+    progressSection.style.display = 'block';
+    
+    // Start background task
+    fetch('/api/ai/generate_background', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({count: count})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            aiTaskId = data.task_id;
+            
+            // Save task ID to localStorage for persistence
+            localStorage.setItem('aiTaskId', aiTaskId);
+            
+            // Show notification
+            showBackgroundNotification('info', `🚀 AI generation started! Generating ${count} questions in background...`);
+            
+            // Change button to monitoring mode
+            startBtn.innerHTML = '<i class="fas fa-eye me-2"></i>Monitoring...';
+            
+            // Start monitoring
+            aiUpdateInterval = setInterval(updateAIProgress, 2000);
+        } else {
+            showBackgroundNotification('error', '❌ Failed to start: ' + data.error);
+            resetAIButton();
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        showBackgroundNotification('error', '❌ Network error');
+        resetAIButton();
+    });
+}
+
+function updateAIProgress() {
+    if (!aiTaskId) return;
+    
+    fetch(`/api/ai/status/${aiTaskId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            
+            const status = data;
+            
+            // Update progress bar
+            document.getElementById('aiProgressBar').style.width = status.progress + '%';
+            document.getElementById('aiProgressText').textContent = status.progress + '%';
+            
+            // Update status message
+            const statusDiv = document.getElementById('aiStatusMessage');
+            statusDiv.className = `alert alert-${status.status === 'completed' ? 'success' : status.status === 'error' ? 'danger' : 'info'} mb-2`;
+            statusDiv.innerHTML = `<i class="fas fa-${status.status === 'completed' ? 'check-circle' : status.status === 'error' ? 'times-circle' : 'spinner fa-spin'} me-2"></i>${status.message}`;
+            
+            // Update stats
+            document.getElementById('aiGenerated').textContent = status.questions_generated;
+            document.getElementById('aiSaved').textContent = status.questions_saved;
+            document.getElementById('aiSkipped').textContent = status.duplicates_skipped;
+            document.getElementById('aiElapsedTime').textContent = Math.floor(status.elapsed_time) + 's';
+            
+            // Check if completed
+            if (status.status === 'completed') {
+                clearInterval(aiUpdateInterval);
+                
+                // Remove from localStorage
+                localStorage.removeItem('aiTaskId');
+                
+                // Show completion notification with sound
+                showCompletionNotification(status);
+                
+                // Enable refresh
+                setTimeout(() => {
+                    resetAIButton();
+                    document.getElementById('aiProgressBar').classList.remove('progress-bar-animated');
+                }, 2000);
+                
+                // Reload page stats after 5 seconds (give time to read notification)
+                setTimeout(() => {
+                    location.reload();
+                }, 5000);
+            } else if (status.status === 'error') {
+                clearInterval(aiUpdateInterval);
+                localStorage.removeItem('aiTaskId');
+                showBackgroundNotification('error', '❌ Error: ' + status.error);
+                resetAIButton();
+            }
+        })
+        .catch(err => console.error('Status check error:', err));
+}
+
+function resetAIButton() {
+    const startBtn = document.getElementById('startBackgroundAI');
+    startBtn.disabled = false;
+    startBtn.innerHTML = '<i class="fas fa-rocket me-2"></i>Start AI Generation';
+}
+
+function showBackgroundNotification(type, message) {
+    const typeMap = {
+        'info': 'info',
+        'success': 'success',
+        'error': 'danger'
+    };
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${typeMap[type]} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.minWidth = '300px';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+function showCompletionNotification(status) {
+    // Create success modal/notification
+    const notification = document.createElement('div');
+    notification.className = 'modal fade';
+    notification.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-success">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>AI Generation Complete!</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle text-success" style="font-size: 64px;"></i>
+                    </div>
+                    <h4 class="text-success">🎉 Success!</h4>
+                    <p class="lead">AI generated ${status.questions_saved} high-quality questions!</p>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h3 class="text-primary">${status.questions_generated}</h3>
+                            <small class="text-muted">Generated</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-success">${status.questions_saved}</h3>
+                            <small class="text-muted">Saved</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-warning">${status.duplicates_skipped}</h3>
+                            <small class="text-muted">Skipped</small>
+                        </div>
+                    </div>
+                    <p class="mt-3 text-muted">
+                        <i class="fas fa-clock me-1"></i>Time taken: ${Math.floor(status.elapsed_time)}s
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal" onclick="location.reload()">
+                        <i class="fas fa-sync me-2"></i>Refresh Page
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    const modal = new bootstrap.Modal(notification);
+    modal.show();
+    
+    // Play success sound (optional)
+    try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OahUBIJTKXh8bllHAU2jdXyy3krBSl+zPLaizsKGWi79+ujUhQKRp/g8r5sIQQogc7y2Yk2CBhkvuznoVASCUyl4fG5ZRwFN43V8st5KwUpfszy2os7CBlovPfro1IUCkaf4PK+bCEEKIHO8tmJNwgYZL7s56FQEglMpeHxuWUcBTeN1fLLeSwGKX7M8tqLOwgZaLz166NSFApGn+DyvmwhBCiBzvLZiTYIGGS+7OehUBIJTKXh8bllHAU3jdXyy3krBil+zPLaizsIGWi89eujUhQKRp/g8r5sIQQogc7y2Yk3CBhkvuznoVASCUyl4fG5ZRwFN43V8st5KwYpfszy2os7CBlou/Xro1IUCkaf4PK+bCEEKIHO8tmJNggYZL7s56FQEglMpeHxuWUcBTeN1fLLeSwGKX7M8tqLOwgZaLv166NSFApGn+DyvmwhBCiBzvLZiTYIGGS+7OehUBIJTKXh8bllHAU3jdXyy3ksBil+zPLaizsIGWi79eujUhQKRp/g8r5sIQQogc7y2Yk2CBhkvuznoVASCUyl4fG5ZRwFN43V8st5LAYpfszy2os7CBlou/Xro1IUCkaf4PK+bCEEKIHO8tmJNggYZL7s56FQEglMpeHxuWUcBTeN1fLLeSwGKX7M8tqLOwgZaLv166NSFApGn+DyvmwhBCiBzvLZiTYIGGS+7OehUBIJTKXh8bllHAU3jdXyy3ksBil+zPLaizsIGWi79eujUhQKRp/g8r5sIQQogc7y2Yk2CBhkvuznoVASCUyl4fG5ZRwFN43V8st5LAYpfszy2os7CBlou/Xro1IUCkaf4PK+bCEEKIHO8tmJNggYZL7s56FQEglMpeHxuWUcBTeN1fLLeSwGKX7M8tqLOwgZaLv166NSFApGn+DyvmwhBCiBzvLZiTYIGGS+7OehUBIJTKXh8bllHAU3jdXyy3ksBil+zPLaizsIGWi79eujUhQKRp/g8r5sIQQogc7y2Yk2CBhkvuznoVASCUyl4fG5ZRwFN43V8st5LAYpfszy2os7CBlou/Xro1IUCkaf4PK+bCEEKIHO8tmJNggYZL7s56FQEglMpeHxuWUcBTeN1fLLeSwGKX7M8tqLOwgZaLv166NSFApGn+DyvmwhBCiBzvLZiTYIGGS+7OehUBIJTKXh8bllHAU3jdXyy3ksBil+zPLaizsIGWi79eujUhQKRp/g8r5sIQQogc7y2Yk2CBhkvuznoVASCUyl4fG5ZRwFN43V8st5LAYpfszy2os7CBlou/Xro1IUCkaf4PK+bCEEKIHO8tmJNggYZL7s56FQEglMpeHxuWUcBTeN1fLLeSwGKX7M8tqLOwgZaLv166NSFApGn+DyvmwhBCiBzvLZiTYIGGS+7OehUBIJTKXh8bllHAU3jdXyy3ksBil+zPLaizsIGWi79eujUhQKRp/g8r5sIQQogc7y2Yk2CBhkvuznoVASCUyl4fG5ZRwFN43V8st5LAYpfszy2os7CBlou/Xro1IUCkaf4PK+bCEEA=');
+        audio.volume = 0.3;
+        audio.play().catch(() => {}); // Ignore if audio fails
+    } catch (e) {}
+    
+    // Browser notification (if permitted)
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("AI Generation Complete!", {
+            body: `Generated ${status.questions_saved} questions successfully!`,
+            icon: "/static/favicon.ico"
+        });
+    }
+}
+
+// Request notification permission on page load
+if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+}
+
 </script>
 {% endblock %}

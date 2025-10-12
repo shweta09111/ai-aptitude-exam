@@ -521,8 +521,8 @@ class EnhancedAptitudeScraper:
                 cursor.execute("""
                     INSERT INTO question 
                     (question_text, option_a, option_b, option_c, option_d, 
-                     correct_option, topic, difficulty, source, scraped_at, ai_classified)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     correct_option, topic, difficulty, source, created_at, scraped_at, ai_classified)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     q['question_text'],
                     q['option_a'], q['option_b'], q['option_c'], q['option_d'],
@@ -530,7 +530,8 @@ class EnhancedAptitudeScraper:
                     q['topic'],
                     q['difficulty'],
                     source_with_hash,
-                    datetime.now().isoformat(),
+                    datetime.now().isoformat(),  # created_at
+                    datetime.now().isoformat(),  # scraped_at
                     True
                 ))
                 added += 1

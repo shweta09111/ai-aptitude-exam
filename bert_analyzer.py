@@ -169,6 +169,76 @@ class BERTQuestionAnalyzer:
             self.logger.error(f"Error finding similar questions: {e}")
             return []
 
+    def analyze_question(self, question_data: Dict) -> Dict:
+        """Main analyze_question method called by background jobs"""
+        try:
+            question_text = question_data.get('question_text', '')
+            options = [
+                question_data.get('option_a', ''),
+                question_data.get('option_b', ''),
+                question_data.get('option_c', ''),
+                question_data.get('option_d', '')
+            ]
+            
+            # Perform comprehensive analysis
+            difficulty_analysis = self.analyze_question_difficulty(question_text, options)
+            topic_analysis = self.classify_question_topic(question_text, options)
+            
+            # Find similar questions for enhanced analysis
+            similar_questions = self.find_similar_questions(question_text, top_k=3)
+            
+            # Compile comprehensive results
+            analysis_result = {
+                'question_id': question_data.get('id'),
+                'difficulty': difficulty_analysis,
+                'topic': topic_analysis,
+                'similar_questions': similar_questions,
+                'analyzed_at': datetime.now().isoformat(),
+                'analysis_method': 'bert_comprehensive',
+                'confidence_score': (difficulty_analysis.get('confidence', 0.5) + 
+                                   topic_analysis.get('confidence', 0.5)) / 2
+            }
+            
+            # Update database with analysis results
+            self._update_question_analysis(question_data.get('id'), analysis_result)
+            
+            self.logger.info(f"Successfully analyzed question {question_data.get('id')}")
+            return analysis_result
+            
+        except Exception as e:
+            self.logger.error(f"Error in analyze_question: {e}")
+            return {
+                'error': str(e),
+                'question_id': question_data.get('id'),
+                'analyzed_at': datetime.now().isoformat(),
+                'analysis_method': 'bert_error_fallback'
+            }
+    
+    def _update_question_analysis(self, question_id: int, analysis_result: Dict):
+        """Update database with BERT analysis results"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            
+            # Store comprehensive analysis in ai_classified field
+            conn.execute("""
+                UPDATE question 
+                SET ai_classified = ?,
+                    difficulty = ?,
+                    topic = ?
+                WHERE id = ?
+            """, (
+                json.dumps(analysis_result),
+                analysis_result['difficulty']['difficulty'],
+                analysis_result['topic']['topic'],
+                question_id
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            self.logger.error(f"Error updating question analysis in DB: {e}")
+
     def classify_question_topic(self, question_text: str, options: List[str]) -> Dict:
         """Classify question topic using BERT"""
         # Predefined topic keywords - can be enhanced with training

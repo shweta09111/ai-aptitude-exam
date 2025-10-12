@@ -282,7 +282,13 @@ class BackgroundJobScheduler:
                 
                 for source in sources:
                     try:
-                        scraped_count = scraper.scrape_source(source, limit=20)  # Limit for continuous operation
+                        # Only pass 'limit' if the method supports it
+                        import inspect
+                        sig = inspect.signature(scraper.scrape_source)
+                        if 'limit' in sig.parameters:
+                            scraped_count = scraper.scrape_source(source, limit=20)
+                        else:
+                            scraped_count = scraper.scrape_source(source)
                         total_scraped += scraped_count
                         logger.info(f"Scraped {scraped_count} questions from {source}")
                     except Exception as e:
@@ -316,9 +322,9 @@ class BackgroundJobScheduler:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Get questions that haven't been AI classified
+            # Get questions that haven't been AI classified (fetch all required fields)
             unclassified = cursor.execute('''
-                SELECT id, question_text FROM question 
+                SELECT id, question_text, option_a, option_b, option_c, option_d FROM question 
                 WHERE ai_classified IS NULL OR ai_classified = 0
                 ORDER BY created_at DESC
                 LIMIT 50
@@ -339,10 +345,26 @@ class BackgroundJobScheduler:
                 analyzer = BERTQuestionAnalyzer()
                 classified_count = 0
                 
-                for question_id, question_text in unclassified:
+                for question_row in unclassified:
                     try:
+                        # Build question dict for BERT analyzer
+                        question_data = {
+                            'id': question_row[0],
+                            'question_text': question_row[1],
+                            'option_a': question_row[2],
+                            'option_b': question_row[3],
+                            'option_c': question_row[4],
+                            'option_d': question_row[5]
+                        }
+                        
                         # Analyze question
-                        analysis = analyzer.analyze_question(question_text)
+                        analysis = analyzer.analyze_question(question_data)
+                        
+                        # Extract difficulty string from analysis result
+                        if isinstance(analysis.get('difficulty'), dict):
+                            difficulty_value = analysis['difficulty'].get('difficulty', 'Medium')
+                        else:
+                            difficulty_value = analysis.get('difficulty', 'Medium')
                         
                         # Update database with classification
                         conn = sqlite3.connect(self.db_path)
@@ -352,7 +374,7 @@ class BackgroundJobScheduler:
                             UPDATE question 
                             SET difficulty = ?, ai_classified = 1
                             WHERE id = ?
-                        ''', (analysis.get('difficulty', 'medium'), question_id))
+                        ''', (difficulty_value, question_data['id']))
                         
                         conn.commit()
                         conn.close()
@@ -360,7 +382,7 @@ class BackgroundJobScheduler:
                         classified_count += 1
                         
                     except Exception as e:
-                        logger.error(f"Error classifying question {question_id}: {e}")
+                        logger.error(f"Error classifying question {question_data.get('id', 'unknown')}: {e}")
                 
                 self.jobs_status[job_id]['status'] = 'completed'
                 self.jobs_status[job_id]['last_result'] = f"Classified {classified_count} questions"
@@ -430,7 +452,7 @@ class BackgroundJobScheduler:
             self.jobs_status[job_id]['last_result'] = f"Error: {str(e)}"
     
     def _run_cloud_sync_job(self):
-        """Execute cloud sync job"""
+        """Execute cloud sync job using standalone script"""
         job_id = "periodic_cloud_sync"
         logger.info("☁️ Starting periodic cloud sync job...")
         
@@ -438,31 +460,80 @@ class BackgroundJobScheduler:
             self.jobs_status[job_id]['status'] = 'running'
             self.jobs_status[job_id]['last_run'] = datetime.now().isoformat()
             
+            # Use standalone script to avoid Flask HTTP stack conflicts
+            import subprocess
+            import sys
+            
+            # Get the path to standalone script
+            script_path = os.path.join(os.path.dirname(__file__), 'standalone_cloud_sync.py')
+            
+            if not os.path.exists(script_path):
+                logger.error(f"Standalone sync script not found: {script_path}")
+                self.jobs_status[job_id]['status'] = 'error'
+                self.jobs_status[job_id]['last_result'] = "Sync script not found"
+                return
+            
+            # Run standalone script
             try:
-                from cloud_sync import CloudSync
+                result = subprocess.run(
+                    [sys.executable, script_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=600,  # 10 minute timeout
+                    cwd=os.path.dirname(__file__),
+                    encoding='utf-8',  # Force UTF-8 encoding
+                    errors='replace'  # Replace undecodable characters
+                )
                 
-                sync = CloudSync()
-                
-                if sync.is_cloud_available():
-                    results = sync.sync_questions('bidirectional')
+                if result.returncode == 0:
+                    # Parse output for statistics
+                    output = result.stdout
+                    uploaded = 0
+                    skipped = 0
+                    failed = 0
+                    
+                    # Extract numbers from output
+                    for line in output.split('\n'):
+                        if 'Uploaded:' in line:
+                            try:
+                                uploaded = int(line.split('Uploaded:')[1].strip())
+                            except:
+                                pass
+                        elif 'Skipped' in line:
+                            try:
+                                skipped = int(line.split(':')[1].strip().split()[0])
+                            except:
+                                pass
+                        elif 'Failed:' in line:
+                            try:
+                                failed = int(line.split('Failed:')[1].strip())
+                            except:
+                                pass
                     
                     self.jobs_status[job_id]['status'] = 'completed'
-                    self.jobs_status[job_id]['last_result'] = f"Synced: {results.get('uploaded', 0)} up, {results.get('downloaded', 0)} down"
+                    self.jobs_status[job_id]['last_result'] = f"✅ {uploaded} uploaded, {skipped} skipped, {failed} failed"
                     
-                    logger.info(f"✅ Cloud sync completed: {results}")
+                    logger.info(f"✅ Cloud sync completed: {uploaded} uploaded, {skipped} skipped, {failed} failed")
                 else:
-                    self.jobs_status[job_id]['status'] = 'skipped'
-                    self.jobs_status[job_id]['last_result'] = "Cloud sync not available"
+                    error_msg = result.stderr or "Unknown error"
+                    self.jobs_status[job_id]['status'] = 'error'
+                    self.jobs_status[job_id]['last_result'] = f"❌ Error: {error_msg[:100]}"
+                    logger.error(f"❌ Cloud sync failed: {error_msg}")
                     
-            except ImportError as e:
-                logger.error(f"Cloud sync not available: {e}")
+            except subprocess.TimeoutExpired:
                 self.jobs_status[job_id]['status'] = 'error'
-                self.jobs_status[job_id]['last_result'] = "Cloud sync module not available"
+                self.jobs_status[job_id]['last_result'] = "❌ Timeout after 10 minutes"
+                logger.error("❌ Cloud sync timed out after 10 minutes")
+                
+            except Exception as e:
+                self.jobs_status[job_id]['status'] = 'error'
+                self.jobs_status[job_id]['last_result'] = f"❌ Error: {str(e)[:100]}"
+                logger.error(f"❌ Cloud sync subprocess error: {e}")
                 
         except Exception as e:
             logger.error(f"❌ Cloud sync job failed: {e}")
             self.jobs_status[job_id]['status'] = 'error'
-            self.jobs_status[job_id]['last_result'] = f"Error: {str(e)}"
+            self.jobs_status[job_id]['last_result'] = f"❌ Error: {str(e)[:100]}"
     
     def get_job_status(self, job_id: str = None) -> Dict:
         """
@@ -552,11 +623,11 @@ def initialize_background_jobs(auto_start: bool = True) -> BackgroundJobSchedule
     if background_scheduler is None:
         background_scheduler = BackgroundJobScheduler()
         
-        # Add default jobs (disabled by default for local testing)
-        background_scheduler.add_scraping_job(interval_minutes=60, enabled=False)
-        background_scheduler.add_classification_job(interval_minutes=30, enabled=False)
-        background_scheduler.add_question_generation_job(cron_schedule="0 */6 * * *", enabled=False)
-        background_scheduler.add_cloud_sync_job(interval_hours=12, enabled=False)
+        # Add default jobs
+        background_scheduler.add_scraping_job(interval_minutes=60, enabled=True)
+        background_scheduler.add_classification_job(interval_minutes=30, enabled=True)
+        background_scheduler.add_question_generation_job(cron_schedule="0 */6 * * *", enabled=True)
+        background_scheduler.add_cloud_sync_job(interval_hours=12, enabled=True)  # Now enabled!
         
         if auto_start:
             background_scheduler.start_scheduler()

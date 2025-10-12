@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Local development
+.env
+instance/
+*.db-journal
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+logs/*.log
+logs/*.log.*
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Trained models (large files)
+trained_models/*.pkl
+trained_models/*.h5
+trained_models/*.pt
+!trained_models/.gitkeep
+
+# Documentation drafts
+*_DRAFT.md
+*_OLD.md
+*_BACKUP.md
+
+# Local testing files
+test_*.py
+debug_*.py
+check_*.py
+verify_*.py
+demo_*.py
