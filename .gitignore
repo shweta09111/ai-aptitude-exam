@@ -4,18 +4,17 @@ __pycache__/
 *$py.class
 *.so
 .Python
-venv/
-env/
-ENV/
 *.egg-info/
 dist/
 build/
+*.pyc
 
 # Virtual Environment
 venv/
 ENV/
 env/
 .venv
+.python-version
 
 # IDE
 .vscode/
@@ -27,27 +26,58 @@ env/
 # OS
 .DS_Store
 Thumbs.db
-*.log
 
 # Environment variables
 .env
 .env.local
 .env.production
 
-# Database (local SQLite only - PostgreSQL is on Vercel)
+# Database files (keep schema, ignore data)
 *.db
 *.sqlite
 *.sqlite3
+instance/
+aptitude.db
+aptitude_exam.db
+exam_system.db
 
 # Logs
 logs/
 *.log
 
-# Uploads
+# Uploads and user content
 uploads/
 *.csv
 *.xls
 *.xlsx
+
+# ML Models (too large for git)
+trained_models/
+*.pt
+*.pth
+*.bin
+*.h5
+
+# Documentation artifacts
+*.docx
+*.pdf
+AI_Aptitude_Exam_System_Project_Report_autogen.docx
+AI_Aptitude_Exam_System_Project_Report_refined.*
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+
+# Test files
+test_*.py
+QUICK_*.txt
+
+# Deployment specific
+.vercel/
+.railway/
 
 # Temporary files
 *.tmp
