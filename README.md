@@ -1,4 +1,4 @@
-# 🎓 AI-Augmented Online Aptitude Exam System
+# AI-Augmented Online Aptitude Exam System
 
 > An intelligent, adaptive online examination platform powered by AI for automated question generation, difficulty classification, and real-time proctoring.
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#-overview)
 - [Key Features](#-key-features)
@@ -24,7 +24,7 @@
 
 ---
 
-## 🌟 Overview
+## Overview
 
 The **AI-Augmented Online Aptitude Exam System** revolutionizes traditional online assessments by integrating cutting-edge artificial intelligence to create a secure, adaptive, and intelligent testing environment. This platform is designed for educational institutions, corporate recruiters, and certification bodies who need scalable, fair, and sophisticated assessment solutions.
 
@@ -46,37 +46,37 @@ Our platform addresses these challenges through:
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🤖 Intelligent Question Generation
+### Intelligent Question Generation
 - **T5 Transformer Model**: Generates contextually relevant multiple-choice questions
 - **Answer Extraction**: Automated QA pipeline creates accurate answers with confidence scores
 - **Duplicate Detection**: Smart algorithms prevent repetitive content
 - **Topic-Based Generation**: Create questions on demand for specific subjects
 
-### 🎯 Adaptive Testing Engine
+### Adaptive Testing Engine
 - **Real-Time Adaptation**: Adjusts question difficulty based on user performance
 - **Performance Analytics**: Tracks response patterns and learning curves
 - **Personalized Exams**: Tailors assessment flow to individual proficiency levels
 
-### 🔍 BERT-Powered Classification
+### BERT-Powered Classification
 - **Difficulty Analysis**: Automatically classifies questions as easy, medium, or hard
 - **Topic Categorization**: Organizes questions by subject and category
 - **Semantic Understanding**: Uses deep learning for accurate classification
 
-### 📹 Real-Time Proctoring
+### Real-Time Proctoring
 - **Face Detection**: OpenCV-based monitoring ensures candidate presence
 - **Eye Tracking**: Detects gaze patterns to identify suspicious behavior
 - **Session Logging**: Records proctoring events for post-exam review
 - **Anomaly Detection**: Flags unusual activities during exams
 
-### ☁️ Cloud Synchronization
+### Cloud Synchronization
 - **Supabase Integration**: Seamless cloud database synchronization
 - **Distributed Management**: Support for multi-location exam deployment
 - **Automatic Backup**: Questions and results synced to the cloud
 - **Offline Mode**: Continue exams during temporary connectivity loss
 
-### ⚙️ Background Automation
+### Background Automation
 - **Scheduled Scraping**: Periodically fetches questions from educational websites
 - **Automated Classification**: Continuously classifies new questions
 - **Periodic Generation**: Generates fresh content at configured intervals
@@ -90,7 +90,7 @@ Our platform addresses these challenges through:
 
 ---
 
-## 🛠 Technology Stack
+## Technology Stack
 
 ### Backend
 - **Python 3.11+**: Core programming language
@@ -125,7 +125,7 @@ Our platform addresses these challenges through:
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -170,7 +170,7 @@ Our platform addresses these challenges through:
 
 ---
 
-## 📥 Installation
+## Installation
 
 ### Prerequisites
 
@@ -229,7 +229,7 @@ Visit `http://localhost:5001` in your browser.
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -270,7 +270,7 @@ CLOUD_SYNC_INTERVAL = 12  # hours
 
 ---
 
-## 🚀 Usage
+## Usage
 
 ### For Administrators
 
@@ -342,7 +342,7 @@ POST /api/cloud_sync/download
 
 ---
 
-## 📦 Deployment
+## Deployment
 
 ### Docker Deployment
 
@@ -375,7 +375,7 @@ vercel --prod
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please follow these steps:
 
@@ -394,13 +394,13 @@ We welcome contributions! Please follow these steps:
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Hugging Face**: For providing state-of-the-art NLP models
 - **OpenCV**: For computer vision capabilities
@@ -409,7 +409,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Contact & Support
+## Contact & Support
 
 - **Developer**: Shweta
 - **Repository**: [github.com/shweta09111/ai-aptitude-exam](https://github.com/shweta09111/ai-aptitude-exam)
@@ -417,7 +417,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📊 Project Statistics
+## Project Statistics
 
 - **Total Questions**: 1000+ (and growing with AI generation)
 - **Supported Question Types**: MCQ, Adaptive MCQ
@@ -427,7 +427,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🔮 Future Roadmap
+## Future Roadmap
 
 - [ ] Support for subjective questions with NLP evaluation
 - [ ] Mobile app (React Native)
